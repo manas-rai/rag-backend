@@ -4,22 +4,27 @@ from typing import Optional, Literal, List
 
 class Settings(BaseSettings):
     # LLM Provider settings
-    llm_provider: Literal["openai", "gcp", "aws"] = "openai"
+    llm_provider: Literal["azure", "gcp", "aws"] = "azure"
 
-    # OpenAI settings
-    openai_api_key: Optional[str] = None
-    openai_model: str = "gpt-3.5-turbo"
+    # Azure settings
+    azure_api_key: Optional[str] = None
+    azure_api_base: Optional[str] = None
+    azure_api_version: str = "2024-02-15-preview"
+    azure_deployment_name: str = "gpt-35-turbo"
+    azure_embedding_deployment_name: str = "text-embedding-ada-002"
 
-    # GCP settings (for future use)
+    # GCP settings
     gcp_project_id: Optional[str] = None
     gcp_location: Optional[str] = None
-    gcp_model: Optional[str] = None
+    gcp_model: str = "gemini-pro"
+    gcp_embedding_model: str = "textembedding-gecko"
 
-    # AWS settings (for future use)
+    # AWS settings
     aws_access_key_id: Optional[str] = None
     aws_secret_access_key: Optional[str] = None
     aws_region: Optional[str] = None
-    aws_model: Optional[str] = None
+    aws_model: str = "anthropic.claude-3-sonnet-20240229-v1:0"
+    aws_embedding_model: str = "amazon.titan-embed-text-v1"
 
     # Vector store settings
     vector_store_path: str = "./data/vector_store"
