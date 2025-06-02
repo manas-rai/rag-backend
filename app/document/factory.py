@@ -1,7 +1,7 @@
 from typing import Dict, Type, Optional
-from .processor import DocumentProcessor
-from ..text.interfaces import TextSplitter, TextProcessor
-from ..vector.interfaces import VectorStore
+from app.document.processor import DocumentProcessor
+from app.text.interfaces import TextSplitter, TextProcessor
+from app.vector.interfaces import VectorStore
 
 class DocumentProcessorFactory:
     """Factory for creating document processors with different components."""
@@ -27,8 +27,8 @@ class DocumentProcessorFactory:
         embedding_function = None
     ) -> DocumentProcessor:
         """Create a document processor with default components."""
-        from ..text.splitters.langchain_splitter import LangChainTextSplitter
-        from ..vector.stores.chroma_store import ChromaVectorStore
+        from app.text.splitters.langchain_splitter import LangChainTextSplitter
+        from app.vector.stores.chroma_store import ChromaVectorStore
         
         text_splitter = LangChainTextSplitter(
             chunk_size=chunk_size,

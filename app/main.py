@@ -1,3 +1,5 @@
+"""FastAPI application entry point for RAG Backend."""
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import documents, query

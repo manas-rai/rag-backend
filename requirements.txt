@@ -8,3 +8,8 @@ langchain==0.3.25
 chromadb==1.0.12
 python-multipart==0.0.20
 tiktoken==0.9.0
+google-cloud-aiplatform==1.45.0
+google-generativeai==0.3.2
+boto3==1.34.69
+azure-identity==1.23.0
+openai[azure]==1.82.1

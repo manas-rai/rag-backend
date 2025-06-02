@@ -1,3 +1,5 @@
+"""Dependencies for the RAG Backend."""
+
 from fastapi import Depends
 from app.config import get_settings, Settings
 from app.document.factory import DocumentProcessorFactory
@@ -8,7 +10,7 @@ from app.document.processor import DocumentProcessor
 def get_llm_provider(settings: Settings = Depends(get_settings)) -> LLMProvider:
     """Get the configured LLM provider."""
     provider_kwargs = {}
-    
+
     if settings.llm_provider == "azure":
         provider_kwargs = {
             "api_key": settings.azure_api_key,
@@ -32,7 +34,7 @@ def get_llm_provider(settings: Settings = Depends(get_settings)) -> LLMProvider:
             "model": settings.aws_model,
             "embedding_model": settings.aws_embedding_model
         }
-    
+
     return LLMProviderFactory.create_provider(settings.llm_provider, **provider_kwargs)
 
 def get_document_processor(
@@ -45,4 +47,4 @@ def get_document_processor(
         chunk_size=settings.chunk_size,
         chunk_overlap=settings.chunk_overlap,
         embedding_function=llm_provider.get_embeddings
-    ) 
+    )

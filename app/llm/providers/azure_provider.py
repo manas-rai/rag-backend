@@ -1,10 +1,12 @@
+"""Azure OpenAI implementation for LLM provider interface."""
+
 from typing import List, Dict, Any
 from openai import AzureOpenAI
-from ..interfaces import LLMProvider
+from app.llm.interfaces import LLMProvider
 
 class AzureLLMProvider(LLMProvider):
     """Azure OpenAI implementation of LLM provider."""
-    
+
     def __init__(
         self,
         api_key: str,
@@ -29,12 +31,13 @@ class AzureLLMProvider(LLMProvider):
         )
         self.deployment_name = deployment_name
         self.embedding_deployment_name = embedding_deployment_name
-    
+
     def generate_response(
         self,
         query: str,
         context: List[Dict[str, Any]],
-        max_tokens: int = 1000
+        max_tokens: int = 1000,
+        **kwargs
     ) -> str:
         """Generate a response using Azure OpenAI.
         
@@ -48,13 +51,19 @@ class AzureLLMProvider(LLMProvider):
         """
         # Format context into a single string
         context_text = "\n\n".join([chunk["text"] for chunk in context])
-        
+
         # Create messages for the chat completion
         messages = [
-            {"role": "system", "content": "You are a helpful assistant that answers questions based on the provided context."},
-            {"role": "user", "content": f"Context:\n{context_text}\n\nQuestion: {query}"}
+            {
+                "role": "system",
+                "content": "You are a helpful assistant that answers based on context."
+            },
+            {
+                "role": "user",
+                "content": f"Context:\n{context_text}\n\nQuestion: {query}"
+            }
         ]
-        
+
         # Generate response
         response = self.client.chat.completions.create(
             model=self.deployment_name,
@@ -62,9 +71,9 @@ class AzureLLMProvider(LLMProvider):
             max_tokens=max_tokens,
             temperature=0.7
         )
-        
+
         return response.choices[0].message.content
-    
+
     def get_embeddings(self, texts: List[str]) -> List[List[float]]:
         """Get embeddings for a list of texts using Azure OpenAI.
         
@@ -81,4 +90,12 @@ class AzureLLMProvider(LLMProvider):
                 input=text
             )
             embeddings.append(response.data[0].embedding)
-        return embeddings 
+        return embeddings
+
+    def get_model_info(self) -> Dict[str, Any]:
+        """Get information about the Azure OpenAI models being used."""
+        return {
+            "provider": "azure",
+            "chat_model": self.deployment_name,
+            "embedding_model": self.embedding_deployment_name
+        }

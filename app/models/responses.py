@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field
+"""Models for responses in the RAG Backend."""
+
 from typing import List
-from .base import BaseResponse
+from pydantic import Field
+from app.models.base import BaseResponse
 
 class DocumentResponse(BaseResponse):
     """Response model for document processing."""
@@ -11,4 +13,4 @@ class QueryResponse(BaseResponse):
     """Response model for query results."""
     answer: str = Field(..., description="Generated answer based on context")
     context: List[str] = Field(..., description="Relevant context chunks used for generation")
-    model_used: str = Field(..., description="The LLM model used for generation") 
+    model_used: str = Field(..., description="The LLM model used for generation")

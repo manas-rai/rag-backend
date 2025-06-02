@@ -1,11 +1,13 @@
+"""AWS implementation for LLM provider interface."""
+
+import json
 from typing import List, Dict, Any
 import boto3
-from ..interfaces import LLMProvider
-import json
+from app.llm.interfaces import LLMProvider
 
 class AWSLLMProvider(LLMProvider):
     """AWS implementation of LLM provider."""
-    
+
     def __init__(
         self,
         access_key_id: str,
@@ -31,12 +33,13 @@ class AWSLLMProvider(LLMProvider):
         )
         self.model = model
         self.embedding_model = embedding_model
-    
+
     def generate_response(
         self,
         query: str,
         context: List[Dict[str, Any]],
-        max_tokens: int = 1000
+        max_tokens: int = 1000,
+        **kwargs
     ) -> str:
         """Generate a response using AWS Bedrock.
         
@@ -50,15 +53,15 @@ class AWSLLMProvider(LLMProvider):
         """
         # Format context into a single string
         context_text = "\n\n".join([chunk["text"] for chunk in context])
-        
+
         # Create prompt
         prompt = f"""Context:
-{context_text}
+        {context_text}
 
-Question: {query}
+        Question: {query}
 
-Please provide a helpful answer based on the context above."""
-        
+        Please provide a helpful answer based on the context above."""
+
         # Generate response using Claude
         response = self.bedrock.invoke_model(
             modelId=self.model,
@@ -68,9 +71,9 @@ Please provide a helpful answer based on the context above."""
                 "temperature": 0.7
             })
         )
-        
+
         return json.loads(response["body"].read())["completion"]
-    
+
     def get_embeddings(self, texts: List[str]) -> List[List[float]]:
         """Get embeddings using AWS Bedrock.
         
@@ -89,4 +92,12 @@ Please provide a helpful answer based on the context above."""
                 })
             )
             embeddings.append(json.loads(response["body"].read())["embedding"])
-        return embeddings 
+        return embeddings
+
+    def get_model_info(self) -> Dict[str, Any]:
+        """Get information about the AWS models being used."""
+        return {
+            "provider": "aws",
+            "chat_model": self.model,
+            "embedding_model": self.embedding_model
+        }

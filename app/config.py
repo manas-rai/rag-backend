@@ -1,8 +1,12 @@
-from pydantic_settings import BaseSettings
+"""Configuration settings for the RAG Backend."""
+
 from functools import lru_cache
 from typing import Optional, Literal, List
+from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
+    """Configuration settings for the RAG Backend."""
+
     # LLM Provider settings
     llm_provider: Literal["azure", "gcp", "aws"] = "azure"
 
@@ -40,8 +44,10 @@ class Settings(BaseSettings):
     cors_allow_headers: List[str] = ["*"]  # Default to allow all headers
 
     class Config:
+        """Pydantic configuration settings."""
         env_file = ".env"
 
 @lru_cache()
 def get_settings() -> Settings:
+    """Get the settings instance."""
     return Settings()

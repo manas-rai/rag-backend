@@ -1,8 +1,8 @@
-from typing import Dict, Any
-from .interfaces import LLMProvider
-from .providers.azure_provider import AzureLLMProvider
-from .providers.gcp_provider import GCPLLMProvider
-from .providers.aws_provider import AWSLLMProvider
+from typing import Type
+from app.llm.interfaces import LLMProvider
+from app.llm.providers.azure_provider import AzureLLMProvider
+from app.llm.providers.gcp_provider import GCPLLMProvider
+from app.llm.providers.aws_provider import AWSLLMProvider
 
 class LLMProviderFactory:
     """Factory for creating LLM providers."""

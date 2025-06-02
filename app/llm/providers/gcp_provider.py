@@ -1,11 +1,14 @@
+"""Google Cloud Platform implementation for LLM provider interface."""
+
 from typing import List, Dict, Any
 import google.generativeai as genai
 from google.cloud import aiplatform
-from ..interfaces import LLMProvider
+from vertexai.language_models import TextEmbeddingModel
+from app.llm.interfaces import LLMProvider
 
 class GCPLLMProvider(LLMProvider):
     """Google Cloud Platform implementation of LLM provider."""
-    
+
     def __init__(
         self,
         project_id: str,
@@ -23,18 +26,19 @@ class GCPLLMProvider(LLMProvider):
         """
         # Initialize Vertex AI
         aiplatform.init(project=project_id, location=location)
-        
+
         # Initialize Gemini
-        genai.configure(project=project_id)
-        
+        genai.configure()
+
         self.model = genai.GenerativeModel(model)
         self.embedding_model = embedding_model
-    
+
     def generate_response(
         self,
         query: str,
         context: List[Dict[str, Any]],
-        max_tokens: int = 1000
+        max_tokens: int = 1000,
+        **kwargs
     ) -> str:
         """Generate a response using GCP's Gemini model.
         
@@ -48,15 +52,15 @@ class GCPLLMProvider(LLMProvider):
         """
         # Format context into a single string
         context_text = "\n\n".join([chunk["text"] for chunk in context])
-        
+
         # Create prompt
         prompt = f"""Context:
-{context_text}
+            {context_text}
 
-Question: {query}
+            Question: {query}
 
-Please provide a helpful answer based on the context above."""
-        
+            Please provide a helpful answer based on the context above."""
+
         # Generate response
         response = self.model.generate_content(
             prompt,
@@ -65,9 +69,9 @@ Please provide a helpful answer based on the context above."""
                 temperature=0.7
             )
         )
-        
+
         return response.text
-    
+
     def get_embeddings(self, texts: List[str]) -> List[List[float]]:
         """Get embeddings using Vertex AI.
         
@@ -78,9 +82,16 @@ Please provide a helpful answer based on the context above."""
             List of embedding vectors
         """
         embeddings = []
+        model = TextEmbeddingModel.from_pretrained(self.embedding_model)
         for text in texts:
-            response = aiplatform.TextEmbeddingModel.from_pretrained(
-                self.embedding_model
-            ).get_embeddings([text])
+            response = model.get_embeddings([text])
             embeddings.append(response[0].values)
-        return embeddings 
+        return embeddings
+
+    def get_model_info(self) -> Dict[str, Any]:
+        """Get information about the GCP models being used."""
+        return {
+            "provider": "gcp",
+            "chat_model": self.model.model_name,
+            "embedding_model": self.embedding_model
+        }

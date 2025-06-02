@@ -1,3 +1,5 @@
+"""Query router for processing and storing documents."""
+
 from fastapi import APIRouter, Depends
 from app.models.requests import QueryRequest
 from app.models.responses import QueryResponse
@@ -21,14 +23,14 @@ async def query(
     try:
         # Get relevant chunks
         chunks = processor.get_relevant_chunks(request.query, k=request.k)
-        
+
         # Generate response using LLM
         response = llm_provider.generate_response(
             query=request.query,
             context=chunks,
             max_tokens=request.max_tokens
         )
-        
+
         return QueryResponse(
             response=response,
             chunks=chunks
@@ -40,4 +42,4 @@ async def query(
             message="Failed to process query",
             response="",
             chunks=[]
-        ) 
+        )

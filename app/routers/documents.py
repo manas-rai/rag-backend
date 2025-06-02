@@ -1,3 +1,5 @@
+"""Documents router for processing and storing documents."""
+
 from fastapi import APIRouter, Depends
 from app.models.requests import DocumentRequest
 from app.models.responses import DocumentResponse
@@ -31,4 +33,4 @@ async def process_documents(
             error=str(e),
             message="Failed to process documents",
             document_count=0
-        ) 
+        )
