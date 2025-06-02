@@ -2,8 +2,22 @@
 
 import os
 from typing import List, Dict, Any, Optional, Callable
-from langchain.vectorstores import Chroma
+from langchain_chroma import Chroma
 from app.vector.interfaces import VectorStore
+
+class EmbeddingFunctionWrapper:
+    """Wrapper to adapt LLM provider embedding functions to ChromaDB interface."""
+
+    def __init__(self, embedding_function: Callable[[List[str]], List[List[float]]]):
+        self.embedding_function = embedding_function
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        """Embed documents using the wrapped function."""
+        return self.embedding_function(texts)
+
+    def embed_query(self, text: str) -> List[float]:
+        """Embed a single query using the wrapped function."""
+        return self.embedding_function([text])[0]
 
 class ChromaVectorStore(VectorStore):
     """ChromaDB implementation of vector store."""
@@ -14,7 +28,11 @@ class ChromaVectorStore(VectorStore):
         embedding_function: Optional[Callable] = None
     ):
         self.persist_directory = persist_directory
-        self.embedding_function = embedding_function
+        # Wrap the embedding function if provided
+        if embedding_function:
+            self.embedding_function = EmbeddingFunctionWrapper(embedding_function)
+        else:
+            self.embedding_function = None
         self._store = None
         self._initialize_store()
 
@@ -40,7 +58,6 @@ class ChromaVectorStore(VectorStore):
             self._initialize_store()
 
         self._store.add_texts(texts=texts, metadatas=metadatas)
-        self._store.persist()
 
     def similarity_search(self, query: str, k: int = 4) -> List[Dict[str, Any]]:
         """Search for similar texts in the Chroma store."""
@@ -62,7 +79,6 @@ class ChromaVectorStore(VectorStore):
             return
 
         self._store.delete(texts)
-        self._store.persist()
 
     def clear(self) -> None:
         """Clear all texts from the Chroma store."""

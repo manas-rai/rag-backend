@@ -1,6 +1,6 @@
 """Documents router for processing and storing documents."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from app.models.requests import DocumentRequest
 from app.models.responses import DocumentResponse
 from app.dependencies import get_document_processor
@@ -28,9 +28,7 @@ async def process_documents(
             document_count=len(request.documents)
         )
     except Exception as e:
-        return DocumentResponse(
-            success=False,
-            error=str(e),
-            message="Failed to process documents",
-            document_count=0
-        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to process documents: {str(e)}"
+        ) from e

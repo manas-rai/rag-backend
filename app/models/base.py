@@ -11,4 +11,4 @@ class BaseResponse(BaseModel):
 class DocumentBase(BaseModel):
     """Base document model."""
     content: str
-    metadata: Optional[dict] = None
+    metadata: Optional[str] = None

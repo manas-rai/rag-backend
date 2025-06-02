@@ -5,6 +5,7 @@ from app.llm.interfaces import LLMProvider
 from app.llm.providers.azure_provider import AzureLLMProvider
 from app.llm.providers.gcp_provider import GCPLLMProvider
 from app.llm.providers.aws_provider import AWSLLMProvider
+from app.llm.providers.groq_provider import GroqLLMProvider
 
 class LLMProviderFactory:
     """Factory for creating LLM providers."""
@@ -14,7 +15,7 @@ class LLMProviderFactory:
         """Create an LLM provider instance.
         
         Args:
-            provider_type: Type of provider to create ("azure", "gcp", or "aws")
+            provider_type: Type of provider to create ("azure", "gcp", "aws", or "groq")
             **kwargs: Provider-specific configuration
             
         Returns:
@@ -45,6 +46,12 @@ class LLMProviderFactory:
                 region=kwargs["region"],
                 model=kwargs["model"],
                 embedding_model=kwargs["embedding_model"]
+            )
+        elif provider_type == "groq":
+            return GroqLLMProvider(
+                api_key=kwargs["api_key"],
+                model=kwargs.get("model", "mixtral-8x7b-32768"),
+                embedding_model=kwargs.get("embedding_model", "mixtral-8x7b-32768")
             )
         else:
             raise ValueError(f"Unsupported provider type: {provider_type}")

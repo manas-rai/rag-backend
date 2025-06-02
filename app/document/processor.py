@@ -23,28 +23,31 @@ class DocumentProcessor:
         metadatas: Optional[List[Dict[str, Any]]] = None
     ) -> None:
         """Process and store documents."""
-        if not documents:
-            return
+        try:
+            if not documents:
+                return
 
         # Process texts if processor is available
-        if self.text_processor:
-            documents = [self.text_processor.process_text(doc) for doc in documents]
+            if self.text_processor:
+                documents = [self.text_processor.process_text(doc) for doc in documents]
 
         # Split documents into chunks
-        all_chunks = []
-        all_metadatas = []
+            all_chunks = []
+            all_metadatas = []
 
-        for i, doc in enumerate(documents):
-            chunks = self.text_splitter.split_text(doc)
-            all_chunks.extend(chunks)
+            for i, doc in enumerate(documents):
+                chunks = self.text_splitter.split_text(doc)
+                all_chunks.extend(chunks)
 
-            # If metadatas are provided, duplicate them for each chunk
-            if metadatas:
-                doc_metadata = metadatas[i] if i < len(metadatas) else {}
-                all_metadatas.extend([doc_metadata] * len(chunks))
+                # If metadatas are provided, duplicate them for each chunk
+                if metadatas:
+                    doc_metadata = metadatas[i] if i < len(metadatas) else {}
+                    all_metadatas.extend([doc_metadata] * len(chunks))
 
-        # Store chunks in vector store
-        self.vector_store.add_texts(all_chunks, all_metadatas)
+                # Store chunks in vector store
+                self.vector_store.add_texts(all_chunks, all_metadatas)
+        except Exception as e:
+            raise e
 
     def get_relevant_chunks(self, query: str, k: int = 4) -> List[Dict[str, Any]]:
         """Retrieve relevant chunks for a query."""
