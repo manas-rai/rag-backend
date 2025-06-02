@@ -56,12 +56,12 @@ class ChromaVectorStore(VectorStore):
             for doc in docs
         ]
 
-    def delete(self, ids: List[str]) -> None:
+    def delete(self, texts: List[str]) -> None:
         """Delete texts from the Chroma store."""
         if self._store is None:
             return
 
-        self._store.delete(ids)
+        self._store.delete(texts)
         self._store.persist()
 
     def clear(self) -> None:

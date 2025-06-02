@@ -1,3 +1,5 @@
+"""Factory for creating LLM providers."""
+
 from typing import Type
 from app.llm.interfaces import LLMProvider
 from app.llm.providers.azure_provider import AzureLLMProvider
@@ -6,7 +8,7 @@ from app.llm.providers.aws_provider import AWSLLMProvider
 
 class LLMProviderFactory:
     """Factory for creating LLM providers."""
-    
+
     @staticmethod
     def create_provider(provider_type: str, **kwargs) -> LLMProvider:
         """Create an LLM provider instance.
@@ -46,9 +48,8 @@ class LLMProviderFactory:
             )
         else:
             raise ValueError(f"Unsupported provider type: {provider_type}")
-    
+
     @classmethod
     def register_provider(cls, provider_type: str, provider_class: Type[LLMProvider]):
         """Register a new provider type."""
         # This method is not used in the new implementation
-        pass 
