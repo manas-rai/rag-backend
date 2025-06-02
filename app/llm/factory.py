@@ -50,6 +50,6 @@ class LLMProviderFactory:
             raise ValueError(f"Unsupported provider type: {provider_type}")
 
     @classmethod
-    def register_provider(cls, provider_type: str, provider_class: Type[LLMProvider]):
+    def register_provider(cls, provider_type: str, provider_class: Type[LLMProvider]) -> None:
         """Register a new provider type."""
         # This method is not used in the new implementation

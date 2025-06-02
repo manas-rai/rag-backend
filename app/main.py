@@ -1,7 +1,8 @@
 """FastAPI application entry point for RAG Backend."""
 
-from fastapi import FastAPI
+from typing import Dict
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI
 from app.routers import documents, query
 from app.config import get_settings
 
@@ -26,7 +27,7 @@ app.include_router(documents.router)
 app.include_router(query.router)
 
 @app.get("/")
-async def root():
+async def root() -> Dict[str, str]:
     """Root endpoint."""
     return {
         "message": "Welcome to RAG Backend API",

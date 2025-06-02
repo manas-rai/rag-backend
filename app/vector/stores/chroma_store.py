@@ -18,7 +18,7 @@ class ChromaVectorStore(VectorStore):
         self._store = None
         self._initialize_store()
 
-    def _initialize_store(self):
+    def _initialize_store(self) -> None:
         """Initialize the Chroma store."""
         if os.path.exists(self.persist_directory):
             self._store = Chroma(
