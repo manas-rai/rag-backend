@@ -1,9 +1,11 @@
 from fastapi import Depends
-from .config import get_settings, Settings
-from .document.factory import DocumentProcessorFactory
-from .llm.factory import LLMProviderFactory
+from app.config import get_settings, Settings
+from app.document.factory import DocumentProcessorFactory
+from app.llm.factory import LLMProviderFactory
+from app.llm.interfaces import LLMProvider
+from app.document.processor import DocumentProcessor
 
-def get_llm_provider(settings: Settings = Depends(get_settings)):
+def get_llm_provider(settings: Settings = Depends(get_settings)) -> LLMProvider:
     """Get the configured LLM provider."""
     provider_kwargs = {}
     
@@ -28,7 +30,10 @@ def get_llm_provider(settings: Settings = Depends(get_settings)):
     
     return LLMProviderFactory.create_provider(settings.llm_provider, **provider_kwargs)
 
-def get_document_processor(settings: Settings = Depends(get_settings), llm_provider = Depends(get_llm_provider)):
+def get_document_processor(
+    settings: Settings = Depends(get_settings),
+    llm_provider: LLMProvider = Depends(get_llm_provider)
+) -> DocumentProcessor:
     """Get the document processor with the configured components."""
     return DocumentProcessorFactory.create_default_processor(
         vector_store_path=settings.vector_store_path,

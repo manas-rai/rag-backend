@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends
-from ..models.requests import QueryRequest
-from ..models.responses import QueryResponse
-from ..dependencies import get_document_processor, get_llm_provider
+from app.models.requests import QueryRequest
+from app.models.responses import QueryResponse
+from app.dependencies import get_document_processor, get_llm_provider
+from app.document.processor import DocumentProcessor
+from app.llm.interfaces import LLMProvider
 
 router = APIRouter(
     prefix="/query",
@@ -12,8 +14,8 @@ router = APIRouter(
 @router.post("", response_model=QueryResponse)
 async def query(
     request: QueryRequest,
-    processor = Depends(get_document_processor),
-    llm_provider = Depends(get_llm_provider)
+    processor: DocumentProcessor = Depends(get_document_processor),
+    llm_provider: LLMProvider = Depends(get_llm_provider)
 ):
     """Query the RAG system."""
     try:

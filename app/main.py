@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routers import documents, query
-from .config import get_settings
+from app.routers import documents, query
+from app.config import get_settings
 
 app = FastAPI(
     title="RAG Backend",
@@ -10,12 +10,13 @@ app = FastAPI(
 )
 
 # Configure CORS
+settings = get_settings()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=get_settings().cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=settings.cors_origins,
+    allow_credentials=settings.cors_allow_credentials,
+    allow_methods=settings.cors_allow_methods,
+    allow_headers=settings.cors_allow_headers,
 )
 
 # Include routers

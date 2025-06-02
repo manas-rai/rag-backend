@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends
-from ..models.requests import DocumentRequest
-from ..models.responses import DocumentResponse
-from ..dependencies import get_document_processor
+from app.models.requests import DocumentRequest
+from app.models.responses import DocumentResponse
+from app.dependencies import get_document_processor
+from app.document.processor import DocumentProcessor
 
 router = APIRouter(
     prefix="/documents",
@@ -12,7 +13,7 @@ router = APIRouter(
 @router.post("", response_model=DocumentResponse, status_code=201)
 async def process_documents(
     request: DocumentRequest,
-    processor = Depends(get_document_processor)
+    processor: DocumentProcessor = Depends(get_document_processor)
 ):
     """Process and store documents."""
     try:
