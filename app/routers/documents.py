@@ -3,8 +3,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from app.models.requests import DocumentRequest
 from app.models.responses import DocumentResponse
-from app.dependencies import get_document_processor
-from app.document.processor import DocumentProcessor
+from app.dependencies import get_document_service
+from app.services.document_service import DocumentService
 
 router = APIRouter(
     prefix="/documents",
@@ -15,13 +15,13 @@ router = APIRouter(
 @router.post("", response_model=DocumentResponse, status_code=201)
 async def process_documents(
     request: DocumentRequest,
-    processor: DocumentProcessor = Depends(get_document_processor)
+    service: DocumentService = Depends(get_document_service)
 ):
     """Process and store documents."""
     try:
-        processor.process_documents(
-            [doc.content for doc in request.documents],
-            [doc.metadata for doc in request.documents]
+        await service.process_and_store_document(
+            request.documents[0].content,
+            request.documents[0].metadata
         )
         return DocumentResponse(
             message="Documents processed successfully",

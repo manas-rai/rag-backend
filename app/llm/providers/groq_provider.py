@@ -2,7 +2,7 @@
 
 from typing import List, Dict, Any
 from groq import Groq
-from app.llm.interfaces import LLMProvider
+from app.llm import LLMProvider
 
 class GroqLLMProvider(LLMProvider):
     """Groq implementation of LLM provider."""

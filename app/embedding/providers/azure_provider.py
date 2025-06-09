@@ -2,7 +2,7 @@
 
 from typing import List, Dict, Any
 from openai import AzureOpenAI
-from app.embedding.interfaces import EmbeddingProvider
+from app.embedding import EmbeddingProvider
 
 class AzureEmbeddingProvider(EmbeddingProvider):
     """Azure OpenAI implementation of embedding provider."""

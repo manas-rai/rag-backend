@@ -1,10 +1,15 @@
 """FastAPI application entry point for RAG Backend."""
 
-from typing import Dict
+from typing import Dict, Any
 import os
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 from app.routers import documents, query
+from app.llm import get_available_providers as get_llm_providers
+from app.embedding import get_available_providers as get_embedding_providers
+from app.vector import get_available_providers as get_vector_providers
+from app.text import get_available_splitters as get_text_splitters
+from app.config import get_settings
 
 app = FastAPI(
     title="RAG Backend",
@@ -46,12 +51,35 @@ app.include_router(documents.router)
 app.include_router(query.router)
 
 @app.get("/")
-async def root() -> Dict[str, str]:
-    """Root endpoint."""
+async def root() -> Dict[str, Any]:
+    """Root endpoint with component information."""
+    settings = get_settings()
+    
     return {
         "message": "Welcome to RAG Backend API",
         "version": "1.0.0",
-        "docs_url": "/docs"
+        "docs_url": "/docs",
+        "current_configuration": {
+            "llm_provider": settings.llm_provider,
+            "embedding_provider": settings.embedding_provider,
+            "vector_provider": getattr(settings, 'vector_provider', 'chroma'),
+            "text_splitter": getattr(settings, 'text_splitter', 'langchain')
+        },
+        "available_components": {
+            "llm_providers": get_llm_providers(),
+            "embedding_providers": get_embedding_providers(),
+            "vector_providers": get_vector_providers(),
+            "text_splitters": get_text_splitters()
+        },
+        "configuration_info": {
+            "description": "Configure components via environment variables",
+            "environment_variables": {
+                "LLM_PROVIDER": "Choose from: " + ", ".join(get_llm_providers()),
+                "EMBEDDING_PROVIDER": "Choose from: " + ", ".join(get_embedding_providers()),
+                "VECTOR_PROVIDER": "Choose from: " + ", ".join(get_vector_providers()),
+                "TEXT_SPLITTER": "Choose from: " + ", ".join(get_text_splitters())
+            }
+        }
     }
 
 if __name__ == "__main__":

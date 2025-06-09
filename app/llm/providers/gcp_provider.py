@@ -4,7 +4,7 @@ from typing import List, Dict, Any
 import google.generativeai as genai
 from google.cloud import aiplatform
 from vertexai.language_models import TextEmbeddingModel
-from app.llm.interfaces import LLMProvider
+from app.llm import LLMProvider
 
 class GCPLLMProvider(LLMProvider):
     """Google Cloud Platform implementation of LLM provider."""

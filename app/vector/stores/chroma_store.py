@@ -3,7 +3,7 @@
 import os
 from typing import List, Dict, Any, Optional, Callable
 from langchain_chroma import Chroma
-from app.vector.interfaces import VectorStore
+from app.vector import VectorStore
 
 class EmbeddingFunctionWrapper:
     """Wrapper to adapt LLM provider embedding functions to ChromaDB interface."""
@@ -89,8 +89,11 @@ class ChromaVectorStore(VectorStore):
         self._store = None
         self._initialize_store()
 
-    def get_config(self) -> Dict[str, Any]:
-        """Get the configuration of the Chroma store."""
+    def add_documents(self, texts: List[str], embeddings: List[List[float]], metadata: Optional[List[Dict[str, Any]]] = None) -> None:
+        """Add documents to the Chroma store."""
+    
+    def get_info(self) -> Dict[str, Any]:
+        """Get information about the Chroma store."""
         return {
             "type": "chroma",
             "persist_directory": self.persist_directory,
