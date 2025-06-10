@@ -3,13 +3,13 @@
 from typing import List, Dict, Any
 from sentence_transformers import SentenceTransformer
 from app.embedding import EmbeddingProvider
-from app.exceptions import EmbeddingError, ConfigurationError, ValidationError
-from app.constants import (
+from utils.exceptions import EmbeddingError, ConfigurationError, ValidationError
+from utils.constants import (
     EMBEDDING_PROVIDER_TYPE_SENTENCE_TRANSFORMER,
     ERROR_EMPTY_TEXT_LIST,
     ERROR_INVALID_DEVICE
 )
-from app.config import get_settings
+from utils.config import get_settings
 
 class SentenceTransformerEmbeddingProvider(EmbeddingProvider):
     """Sentence Transformer implementation of embedding provider."""

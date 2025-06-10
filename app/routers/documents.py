@@ -1,10 +1,10 @@
 """Documents router for processing and storing documents."""
 
 from fastapi import APIRouter, Depends, HTTPException
-from app.constants import ERROR_NOT_FOUND
+from utils.constants import ERROR_NOT_FOUND
 from app.models.requests import DocumentRequest
 from app.models.responses import DocumentResponse
-from app.dependencies import get_document_service
+from utils.dependencies import get_document_service
 from app.services.document_service import DocumentService
 
 router = APIRouter(

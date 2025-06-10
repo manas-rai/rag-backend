@@ -9,7 +9,7 @@ from app.llm.registry import get_available_providers as get_llm_providers
 from app.embedding.registry import get_available_providers as get_embedding_providers
 from app.vector.registry import get_available_providers as get_vector_providers
 from app.text.registry import get_available_splitters as get_text_splitters
-from app.config import get_settings
+from utils.config import get_settings
 
 app = FastAPI(
     title="RAG Backend",

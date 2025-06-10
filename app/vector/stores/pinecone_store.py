@@ -4,8 +4,8 @@ import uuid
 from typing import List, Dict, Any, Optional, Union
 from pinecone import Pinecone
 from app.vector import VectorStore
-from app.exceptions import VectorStoreError, ValidationError, ConfigurationError
-from app.constants import (
+from utils.exceptions import VectorStoreError, ValidationError, ConfigurationError
+from utils.constants import (
     VECTOR_STORE_TYPE_PINECONE,
     VECTOR_STORE_METRIC_COSINE,
     VECTOR_STORE_METRIC_EUCLIDEAN,
@@ -20,7 +20,7 @@ from app.constants import (
     METADATA_KEY_CHUNK_INDEX,
     METADATA_KEY_TOTAL_CHUNKS
 )
-from app.config import get_settings
+from utils.config import get_settings
 
 class PineconeVectorStore(VectorStore):
     """Pinecone implementation of vector store."""

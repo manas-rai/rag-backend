@@ -4,7 +4,7 @@ import json
 from typing import Optional
 from functools import lru_cache
 from fastapi import Depends, HTTPException, Request
-from app.config import get_settings, Settings
+from utils.config import get_settings, Settings
 
 # Import base classes
 from app.llm import LLMProvider
