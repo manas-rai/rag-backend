@@ -1,12 +1,13 @@
 """Models for requests in the RAG Backend."""
 
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel, Field
-from app.models.base import DocumentBase
+from app.models.base import DocumentBase, DocumentConfig
 
 class DocumentRequest(BaseModel):
     """Request model for document processing."""
     documents: List[DocumentBase] = Field(..., description="List of documents to process")
+    config: Optional[DocumentConfig] = Field(default=None, description="Configuration for document processing")
 
 class QueryRequest(BaseModel):
     """Request model for querying the RAG system."""

@@ -1,78 +1,112 @@
-"""AWS implementation for LLM provider interface."""
+"""AWS Bedrock implementation of LLM provider."""
 
 import json
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import boto3
 from app.llm import LLMProvider
+from app.exceptions import LLMError, ConfigurationError, ValidationError
+from app.constants import (
+    LLM_PROVIDER_TYPE_AWS,
+    ERROR_INVALID_ACCESS_KEY,
+    ERROR_INVALID_SECRET_KEY,
+    ERROR_INVALID_REGION,
+    ERROR_INVALID_MODEL
+)
+from app.config import get_settings
 
 class AWSLLMProvider(LLMProvider):
-    """AWS implementation of LLM provider."""
+    """AWS Bedrock implementation of LLM provider."""
 
     def __init__(
         self,
-        access_key_id: str,
-        secret_access_key: str,
-        region: str,
-        model: str,
-        embedding_model: str
+        access_key_id: Optional[str] = None,
+        secret_access_key: Optional[str] = None,
+        region: Optional[str] = None,
+        model: Optional[str] = None
     ):
-        """Initialize AWS clients.
+        """Initialize AWS Bedrock provider.
         
         Args:
             access_key_id: AWS access key ID
             secret_access_key: AWS secret access key
             region: AWS region
-            model: Model ID for text generation
-            embedding_model: Model ID for embeddings
+            model: AWS Bedrock model ID
+            
+        Raises:
+            ConfigurationError: If initialization fails
+            ValidationError: If input validation fails
         """
-        self.bedrock = boto3.client(
-            service_name="bedrock-runtime",
-            aws_access_key_id=access_key_id,
-            aws_secret_access_key=secret_access_key,
-            region_name=region
-        )
-        self.model = model
-        self.embedding_model = embedding_model
+        settings = get_settings()
 
-    def generate_response(
+        if not access_key_id and not settings.aws_access_key_id:
+            raise ValidationError(ERROR_INVALID_ACCESS_KEY)
+        if not secret_access_key and not settings.aws_secret_access_key:
+            raise ValidationError(ERROR_INVALID_SECRET_KEY)
+        if not region and not settings.aws_region:
+            raise ValidationError(ERROR_INVALID_REGION)
+        if not model and not settings.aws_model:
+            raise ValidationError(ERROR_INVALID_MODEL)
+
+        try:
+            self.client = boto3.client(
+                'bedrock-runtime',
+                aws_access_key_id=access_key_id or settings.aws_access_key_id,
+                aws_secret_access_key=secret_access_key or settings.aws_secret_access_key,
+                region_name=region or settings.aws_region
+            )
+            self.model = model or settings.aws_model
+        except Exception as e:
+            raise ConfigurationError(f"Failed to initialize AWS Bedrock client: {str(e)}") from e
+
+    def generate(
         self,
-        query: str,
-        context: List[Dict[str, Any]],
-        max_tokens: int = 1000,
-        **kwargs
+        prompt: str,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None
     ) -> str:
-        """Generate a response using AWS Bedrock.
+        """Generate text using AWS Bedrock.
         
         Args:
-            query: The user's query
-            context: List of relevant context chunks
-            max_tokens: Maximum number of tokens in the response
+            prompt: The prompt to generate text from
+            temperature: Sampling temperature
+            max_tokens: Maximum number of tokens to generate
             
         Returns:
-            Generated response text
+            Generated text
+            
+        Raises:
+            LLMError: If generation fails
         """
-        # Format context into a single string
-        context_text = "\n\n".join([chunk["text"] for chunk in context])
+        try:
+            settings = get_settings()
+            response = self.client.invoke_model(
+                modelId=self.model,
+                body=json.dumps({
+                    "prompt": prompt,
+                    "temperature": temperature or settings.llm_temperature,
+                    "max_tokens": max_tokens or settings.llm_max_tokens
+                })
+            )
+            return json.loads(response['body'].read())['completion']
+        except Exception as e:
+            raise LLMError(f"Failed to generate text: {str(e)}") from e
 
-        # Create prompt
-        prompt = f"""Context:
-        {context_text}
-
-        Question: {query}
-
-        Please provide a helpful answer based on the context above."""
-
-        # Generate response using Claude
-        response = self.bedrock.invoke_model(
-            modelId=self.model,
-            body=json.dumps({
-                "prompt": prompt,
-                "max_tokens_to_sample": max_tokens,
-                "temperature": 0.7
-            })
-        )
-
-        return json.loads(response["body"].read())["completion"]
+    def get_provider_info(self) -> Dict[str, Any]:
+        """Get information about the AWS Bedrock provider.
+        
+        Returns:
+            Dictionary containing provider information
+            
+        Raises:
+            LLMError: If info retrieval fails
+        """
+        try:
+            return {
+                "type": LLM_PROVIDER_TYPE_AWS,
+                "model": self.model
+            }
+        except Exception as e:
+            raise LLMError(f"Failed to get provider info: {str(e)}") from e
 
     def get_embeddings(self, texts: List[str]) -> List[List[float]]:
         """Get embeddings using AWS Bedrock.
@@ -85,8 +119,8 @@ class AWSLLMProvider(LLMProvider):
         """
         embeddings = []
         for text in texts:
-            response = self.bedrock.invoke_model(
-                modelId=self.embedding_model,
+            response = self.client.invoke_model(
+                modelId=self.model,
                 body=json.dumps({
                     "inputText": text
                 })
@@ -99,5 +133,5 @@ class AWSLLMProvider(LLMProvider):
         return {
             "provider": "aws",
             "chat_model": self.model,
-            "embedding_model": self.embedding_model
+            "embedding_model": self.model
         }

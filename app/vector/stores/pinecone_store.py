@@ -5,6 +5,22 @@ from typing import List, Dict, Any, Optional, Union
 from pinecone import Pinecone
 from app.vector import VectorStore
 from app.exceptions import VectorStoreError, ValidationError, ConfigurationError
+from app.constants import (
+    VECTOR_STORE_TYPE_PINECONE,
+    VECTOR_STORE_METRIC_COSINE,
+    VECTOR_STORE_METRIC_EUCLIDEAN,
+    VECTOR_STORE_METRIC_DOTPRODUCT,
+    VECTOR_STORE_BATCH_SIZE,
+    ERROR_INVALID_METRIC,
+    ERROR_NO_TEXTS_FOR_DELETION,
+    ERROR_DOCUMENT_ID_REQUIRED,
+    ERROR_INVALID_PAGINATION,
+    METADATA_KEY_TEXT,
+    METADATA_KEY_DOC_ID,
+    METADATA_KEY_CHUNK_INDEX,
+    METADATA_KEY_TOTAL_CHUNKS
+)
+from app.config import get_settings
 
 class PineconeVectorStore(VectorStore):
     """Pinecone implementation of vector store."""
@@ -13,8 +29,8 @@ class PineconeVectorStore(VectorStore):
         self,
         api_key: str,
         index_name: str,
-        dimension: Optional[int] = 768,
-        metric: Optional[str] = "cosine",
+        dimension: Optional[int] = None,
+        metric: Optional[str] = None,
     ):
         """Initialize Pinecone vector store.
         
@@ -26,12 +42,23 @@ class PineconeVectorStore(VectorStore):
             
         Raises:
             ConfigurationError: If initialization fails
+            ValidationError: If metric is invalid
         """
+        settings = get_settings()
+        self.dimension = dimension or settings.vector_store_dimension
+        self.metric = metric or settings.vector_store_metric
+
+        valid_metrics = [
+            VECTOR_STORE_METRIC_COSINE,
+            VECTOR_STORE_METRIC_EUCLIDEAN,
+            VECTOR_STORE_METRIC_DOTPRODUCT
+        ]
+        if self.metric not in valid_metrics:
+            raise ValidationError(ERROR_INVALID_METRIC)
+
         try:
             self.api_key = api_key
             self.index_name = index_name
-            self.dimension = dimension
-            self.metric = metric
 
             # Initialize Pinecone client
             self.pc = Pinecone(api_key=api_key)
@@ -46,23 +73,9 @@ class PineconeVectorStore(VectorStore):
             ConfigurationError: If index initialization fails
         """
         try:
-            # Check if index exists
             existing_indexes = [index.name for index in self.pc.list_indexes()]
-
             if self.index_name not in existing_indexes:
-                # Create new index with serverless spec
-                self.pc.create_index(
-                    name=self.index_name,
-                    dimension=self.dimension,
-                    metric=self.metric,
-                    spec={
-                        "serverless": {
-                            "cloud": "aws",
-                            "region": "us-west-2"
-                        }
-                    }
-                )
-
+                raise ConfigurationError(f"Index {self.index_name} does not exist")
             # Connect to the index
             self.index = self.pc.Index(self.index_name)
 
@@ -72,14 +85,12 @@ class PineconeVectorStore(VectorStore):
     def add_texts(
         self,
         texts: List[str],
-        embeddings: List[List[float]],
-        metadata: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None
+        metadatas: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None
     ) -> str:
         """Add texts to the Pinecone index.
 
         Args:
             texts: List of text chunks
-            embeddings: List of embedding vectors
             metadata: Optional metadata for the text(s)
         
         Returns:
@@ -90,56 +101,43 @@ class PineconeVectorStore(VectorStore):
             VectorStoreError: If storage operation fails
         """
         try:
-            if not texts or not embeddings:
-                raise ValidationError("Both texts and embeddings must be provided")
-            
-            if len(texts) != len(embeddings):
-                raise ValidationError("Number of texts must match number of embeddings")
-                
-            # Validate embedding dimensions
-            for embedding in embeddings:
-                if len(embedding) != self.dimension:
-                    raise ValidationError(f"Embedding dimension must be {self.dimension}, got {len(embedding)}")
-
             # Generate a document ID
             doc_id = str(uuid.uuid4())
-            
+
             # Prepare vectors for upsert
             vectors = []
-            for i, (text, embedding) in enumerate(zip(texts, embeddings)):
+            for i, text in enumerate(texts):
                 chunk_id = f"{doc_id}_chunk_{i}"
-                
+
                 # Prepare metadata for this chunk
                 chunk_metadata = {
-                    "text": text,
-                    "doc_id": doc_id,
-                    "chunk_index": i,
-                    "total_chunks": len(texts)
+                    METADATA_KEY_TEXT: text,
+                    METADATA_KEY_DOC_ID: doc_id,
+                    METADATA_KEY_CHUNK_INDEX: i,
+                    METADATA_KEY_TOTAL_CHUNKS: len(texts)
                 }
-                
+
                 # Add additional metadata if provided
-                if metadata:
-                    if isinstance(metadata, dict):
+                if metadatas:
+                    if isinstance(metadatas, dict):
                         # Same metadata for all chunks
-                        chunk_metadata.update(metadata)
-                    elif isinstance(metadata, list) and i < len(metadata):
+                        chunk_metadata.update(metadatas)
+                    elif isinstance(metadatas, list) and i < len(metadatas):
                         # Different metadata for each chunk
-                        chunk_metadata.update(metadata[i])
+                        chunk_metadata.update(metadatas[i])
 
                 vectors.append({
                     "id": chunk_id,
-                    "values": embedding,
                     "metadata": chunk_metadata
                 })
 
-            # Upsert vectors in batches (Pinecone recommends batch size of 100)
-            batch_size = 100
-            for i in range(0, len(vectors), batch_size):
-                batch = vectors[i:i + batch_size]
+            # Upsert vectors in batches
+            for i in range(0, len(vectors), VECTOR_STORE_BATCH_SIZE):
+                batch = vectors[i:i + VECTOR_STORE_BATCH_SIZE]
                 self.index.upsert(vectors=batch)
 
             return doc_id
-            
+
         except ValidationError:
             raise
         except Exception as e:
@@ -174,7 +172,7 @@ class PineconeVectorStore(VectorStore):
         vectors = []
         for i, (text, embedding) in enumerate(zip(texts, embeddings)):
             chunk_id = f"{doc_id}_chunk_{i}"
-            
+
             # Prepare metadata for this chunk
             chunk_metadata = {
                 "text": text,
@@ -182,7 +180,7 @@ class PineconeVectorStore(VectorStore):
                 "chunk_index": i,
                 "total_chunks": len(texts)
             }
-            
+
             # Add additional metadata if provided
             if metadata:
                 if isinstance(metadata, dict):
@@ -208,14 +206,14 @@ class PineconeVectorStore(VectorStore):
 
     def similarity_search(
         self,
-        query_embedding: List[float],
+        query: str,
         k: int = 4,
-        filter: Optional[Dict[str, Any]] = None
+        filters: Optional[Dict[str, Any]] = None
     ) -> List[Dict[str, Any]]:
         """Search for similar texts in the Pinecone index.
         
         Args:
-            query_embedding: The query embedding vector
+            query: The query text
             k: Number of results to return
             filter: Optional filter criteria for the search
             
@@ -227,30 +225,34 @@ class PineconeVectorStore(VectorStore):
             VectorStoreError: If search operation fails
         """
         try:
-            # Validate query embedding dimension
-            if len(query_embedding) != self.dimension:
-                raise ValidationError(f"Query embedding dimension must be {self.dimension}, got {len(query_embedding)}")
-
             # Perform similarity search
             search_results = self.index.query(
-                vector=query_embedding,
+                vector=query,
                 top_k=k,
                 include_metadata=True,
-                filter=filter
+                filter=filters
             )
 
             # Format results
             results = []
             for match in search_results.matches:
                 result = {
-                    "text": match.metadata.get("text", ""),
-                    "metadata": {k: v for k, v in match.metadata.items() if k != "text"},
+                    METADATA_KEY_TEXT: match.metadata.get(METADATA_KEY_TEXT, ""),
+                    "metadata": {
+                        k: v for k, v in match.metadata.items()
+                        if k not in [
+                            METADATA_KEY_TEXT,
+                            METADATA_KEY_DOC_ID,
+                            METADATA_KEY_CHUNK_INDEX,
+                            METADATA_KEY_TOTAL_CHUNKS
+                        ]
+                    },
                     "score": match.score
                 }
                 results.append(result)
 
             return results
-            
+
         except ValidationError:
             raise
         except Exception as e:
@@ -268,11 +270,11 @@ class PineconeVectorStore(VectorStore):
         """
         try:
             if not texts:
-                raise ValidationError("No texts provided for deletion")
-                
+                raise ValidationError(ERROR_NO_TEXTS_FOR_DELETION)
+
             # Delete all vectors with matching text in metadata
             self.index.delete(
-                filter={"text": {"$in": texts}}
+                filter={METADATA_KEY_TEXT: {"$in": texts}}
             )
         except ValidationError:
             raise
@@ -294,14 +296,14 @@ class PineconeVectorStore(VectorStore):
         """
         try:
             if not doc_id:
-                raise ValidationError("Document ID is required")
-                
+                raise ValidationError(ERROR_DOCUMENT_ID_REQUIRED)
+
             # Query to find all chunks of the document
             results = self.index.query(
                 vector=[0.0] * self.dimension,  # Dummy vector of correct dimension
                 top_k=1000,  # Get all chunks
                 include_metadata=True,
-                filter={"doc_id": doc_id}
+                filter={METADATA_KEY_DOC_ID: doc_id}
             )
 
             if not results.matches:
@@ -310,19 +312,26 @@ class PineconeVectorStore(VectorStore):
             # Sort chunks by chunk_index
             chunks = sorted(
                 results.matches,
-                key=lambda x: x.metadata.get("chunk_index", 0)
+                key=lambda x: x.metadata.get(METADATA_KEY_CHUNK_INDEX, 0)
             )
 
             # Reconstruct document
             document = {
-                "doc_id": doc_id,
-                "chunks": [match.metadata.get("text", "") for match in chunks],
-                "metadata": {k: v for k, v in chunks[0].metadata.items() 
-                           if k not in ["text", "doc_id", "chunk_index", "total_chunks"]}
+                METADATA_KEY_DOC_ID: doc_id,
+                "chunks": [match.metadata.get(METADATA_KEY_TEXT, "") for match in chunks],
+                "metadata": {
+                    k: v for k, v in chunks[0].metadata.items()
+                    if k not in [
+                        METADATA_KEY_TEXT,
+                        METADATA_KEY_DOC_ID,
+                        METADATA_KEY_CHUNK_INDEX,
+                        METADATA_KEY_TOTAL_CHUNKS
+                    ]
+                }
             }
 
             return document
-            
+
         except ValidationError:
             raise
         except Exception as e:
@@ -344,8 +353,8 @@ class PineconeVectorStore(VectorStore):
         """
         try:
             if limit < 0 or offset < 0:
-                raise ValidationError("Limit and offset must be non-negative")
-                
+                raise ValidationError(ERROR_INVALID_PAGINATION)
+
             # Get all vectors with their metadata
             results = self.index.query(
                 vector=[0.0] * self.dimension,  # Dummy vector of correct dimension
@@ -356,20 +365,29 @@ class PineconeVectorStore(VectorStore):
             # Group chunks by doc_id
             documents = {}
             for match in results.matches:
-                doc_id = match.metadata.get("doc_id")
+                doc_id = match.metadata.get(METADATA_KEY_DOC_ID)
                 if doc_id:
                     if doc_id not in documents:
                         documents[doc_id] = {
-                            "doc_id": doc_id,
-                            "metadata": {k: v for k, v in match.metadata.items() 
-                                       if k not in ["text", "doc_id", "chunk_index", "total_chunks"]},
-                            "total_chunks": match.metadata.get("total_chunks", 0)
+                            METADATA_KEY_DOC_ID: doc_id,
+                            "metadata": {
+                                k: v for k, v in match.metadata.items()
+                                if k not in [
+                                    METADATA_KEY_TEXT,
+                                    METADATA_KEY_DOC_ID,
+                                    METADATA_KEY_CHUNK_INDEX,
+                                    METADATA_KEY_TOTAL_CHUNKS
+                                ]
+                            },
+                            METADATA_KEY_TOTAL_CHUNKS: match.metadata.get(
+                                    METADATA_KEY_TOTAL_CHUNKS, 0
+                                )
                         }
 
             # Convert to list and apply pagination
             doc_list = list(documents.values())
             return doc_list[offset:offset + limit]
-            
+
         except ValidationError:
             raise
         except Exception as e:
@@ -397,7 +415,7 @@ class PineconeVectorStore(VectorStore):
         """
         try:
             return {
-                "type": "pinecone",
+                "type": VECTOR_STORE_TYPE_PINECONE,
                 "index_name": self.index_name,
                 "dimension": self.dimension,
                 "metric": self.metric
