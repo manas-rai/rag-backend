@@ -2,7 +2,7 @@
 
 from typing import List, Dict, Any
 from groq import Groq
-from app.embedding.interfaces import EmbeddingProvider
+from app.embedding import EmbeddingProvider
 
 class GroqEmbeddingProvider(EmbeddingProvider):
     """Groq implementation of embedding provider."""

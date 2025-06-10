@@ -2,7 +2,7 @@
 
 from typing import List, Dict, Any
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from app.text.interfaces import TextSplitter
+from app.text import TextSplitter
 
 class LangChainTextSplitter(TextSplitter):
     """LangChain implementation of text splitter."""

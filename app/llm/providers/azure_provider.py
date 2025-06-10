@@ -2,7 +2,7 @@
 
 from typing import List, Dict, Any
 from openai import AzureOpenAI
-from app.llm.interfaces import LLMProvider
+from app.llm import LLMProvider
 
 class AzureLLMProvider(LLMProvider):
     """Azure OpenAI implementation of LLM provider."""

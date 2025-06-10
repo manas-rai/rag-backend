@@ -2,7 +2,7 @@
 
 from typing import List, Dict, Any
 from langchain_experimental.text_splitter import SemanticChunker
-from app.text.interfaces import TextSplitter
+from app.text import TextSplitter
 
 class SemanticTextSplitter(TextSplitter):
     """Semantic text splitter that splits text based on semantic meaning."""

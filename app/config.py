@@ -27,6 +27,13 @@ class Settings(BaseSettings):
         "azure", "gcp", "aws", "groq", "sentence_transformers"
     ] = os.getenv("EMBEDDING_PROVIDER", "sentence_transformers")
 
+    # Vector store settings
+    vector_provider: Literal["chroma", "pinecone"] = os.getenv("VECTOR_PROVIDER", "pinecone")
+    vector_store_path: str = os.getenv("VECTOR_STORE_PATH", "./data/vector_store")
+
+    # Text processing settings
+    text_splitter: Literal["langchain", "semantic"] = os.getenv("TEXT_SPLITTER", "langchain")
+
     # Azure settings
     azure_api_key: Optional[str] = os.getenv("AZURE_API_KEY")
     azure_api_base: Optional[str] = os.getenv("AZURE_API_BASE")
@@ -63,12 +70,14 @@ class Settings(BaseSettings):
     sentence_transformer_model: str = os.getenv("SENTENCE_TRANSFORMER_MODEL", "all-MiniLM-L6-v2")
     sentence_transformer_device: str = os.getenv("SENTENCE_TRANSFORMER_DEVICE", "cpu")
 
-    # Vector store settings
-    vector_store_path: str = os.getenv("VECTOR_STORE_PATH", "./data/vector_store")
-
     # RAG settings
     chunk_size: int = int(os.getenv("CHUNK_SIZE", "1000"))
     chunk_overlap: int = int(os.getenv("CHUNK_OVERLAP", "200"))
+
+    # Pinecone settings
+    pinecone_api_key: Optional[str] = os.getenv("PINECONE_API_KEY")
+    pinecone_index_name: str = os.getenv("PINECONE_INDEX_NAME", "ragindex1")
+    pinecone_environment: str = os.getenv("PINECONE_ENVIRONMENT", "gcp-starter")
 
 @lru_cache()
 def get_settings() -> Settings:

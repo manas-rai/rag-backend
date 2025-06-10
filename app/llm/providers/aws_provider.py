@@ -3,7 +3,7 @@
 import json
 from typing import List, Dict, Any
 import boto3
-from app.llm.interfaces import LLMProvider
+from app.llm import LLMProvider
 
 class AWSLLMProvider(LLMProvider):
     """AWS implementation of LLM provider."""
