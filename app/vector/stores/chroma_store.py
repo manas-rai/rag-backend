@@ -89,9 +89,14 @@ class ChromaVectorStore(VectorStore):
         self._store = None
         self._initialize_store()
 
-    def add_documents(self, texts: List[str], embeddings: List[List[float]], metadata: Optional[List[Dict[str, Any]]] = None) -> None:
+    def add_documents(
+        self,
+        texts: List[str],
+        embeddings: List[List[float]],
+        metadata: Optional[List[Dict[str, Any]]] = None
+    ) -> None:
         """Add documents to the Chroma store."""
-    
+
     def get_info(self) -> Dict[str, Any]:
         """Get information about the Chroma store."""
         return {

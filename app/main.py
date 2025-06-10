@@ -5,10 +5,10 @@ import os
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 from app.routers import documents, query
-from app.llm import get_available_providers as get_llm_providers
-from app.embedding import get_available_providers as get_embedding_providers
-from app.vector import get_available_providers as get_vector_providers
-from app.text import get_available_splitters as get_text_splitters
+from app.llm.registry import get_available_providers as get_llm_providers
+from app.embedding.registry import get_available_providers as get_embedding_providers
+from app.vector.registry import get_available_providers as get_vector_providers
+from app.text.registry import get_available_splitters as get_text_splitters
 from app.config import get_settings
 
 app = FastAPI(
@@ -54,7 +54,7 @@ app.include_router(query.router)
 async def root() -> Dict[str, Any]:
     """Root endpoint with component information."""
     settings = get_settings()
-    
+
     return {
         "message": "Welcome to RAG Backend API",
         "version": "1.0.0",

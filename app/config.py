@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     # Vector store settings
     vector_provider: Literal["chroma", "pinecone"] = os.getenv("VECTOR_PROVIDER", "pinecone")
     vector_store_path: str = os.getenv("VECTOR_STORE_PATH", "./data/vector_store")
+    vector_store_dimension: int = int(os.getenv("VECTOR_STORE_DIMENSION", "768"))
+    vector_store_metric: str = os.getenv("VECTOR_STORE_METRIC", "cosine")
 
     # Text processing settings
     text_splitter: Literal["langchain", "semantic"] = os.getenv("TEXT_SPLITTER", "langchain")

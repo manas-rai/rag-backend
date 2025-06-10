@@ -12,3 +12,10 @@ class DocumentBase(BaseModel):
     """Base document model."""
     content: str
     metadata: Optional[str] = None
+
+class DocumentConfig(BaseModel):
+    """Configuration for document processing."""
+    llm_provider: Optional[str] = None
+    embedding_provider: Optional[str] = None
+    vector_store: Optional[str] = None
+    chunker: Optional[str] = None

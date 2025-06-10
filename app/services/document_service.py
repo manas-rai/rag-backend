@@ -55,21 +55,21 @@ class DocumentService:
     ) -> List[str]:
         """Process and store multiple documents in batch."""
         doc_ids = []
-        
+
         # Update chunk parameters if provided
         if chunk_size is not None or chunk_overlap is not None:
             self.text_splitter.update_parameters(
                 chunk_size=chunk_size,
                 chunk_overlap=chunk_overlap
             )
-        
+
         for doc in documents:
             # Split document into chunks
             chunks = self.text_splitter.split_text(doc["content"])
-            
+
             # Create embeddings for chunks
             embeddings = await self.embedding_provider.get_embeddings(chunks)
-            
+
             # Process and store chunks with their embeddings
             doc_id = await self.document_processor.process_document(
                 chunks=chunks,
@@ -77,7 +77,7 @@ class DocumentService:
                 metadata=doc.get("metadata")
             )
             doc_ids.append(doc_id)
-            
+
         return doc_ids
 
     async def delete_document(self, doc_id: str) -> bool:

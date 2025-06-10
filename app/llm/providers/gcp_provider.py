@@ -1,97 +1,107 @@
-"""Google Cloud Platform implementation for LLM provider interface."""
+"""Google Cloud implementation of LLM provider."""
 
-from typing import List, Dict, Any
-import google.generativeai as genai
-from google.cloud import aiplatform
-from vertexai.language_models import TextEmbeddingModel
+from typing import Dict, Any, Optional
+from vertexai import generative_models
 from app.llm import LLMProvider
+from app.exceptions import LLMError, ConfigurationError, ValidationError
+from app.constants import (
+    LLM_PROVIDER_TYPE_GCP,
+    ERROR_INVALID_PROJECT,
+    ERROR_INVALID_LOCATION,
+    ERROR_INVALID_MODEL
+)
+from app.config import get_settings
 
 class GCPLLMProvider(LLMProvider):
-    """Google Cloud Platform implementation of LLM provider."""
+    """Google Cloud implementation of LLM provider."""
 
     def __init__(
         self,
-        project_id: str,
-        location: str,
-        model: str,
-        embedding_model: str
+        project_id: Optional[str] = None,
+        location: Optional[str] = None,
+        model: Optional[str] = None
     ):
-        """Initialize GCP clients.
+        """Initialize Google Cloud provider.
         
         Args:
-            project_id: GCP project ID
-            location: GCP location
-            model: Model name for text generation
-            embedding_model: Model name for embeddings
-        """
-        # Initialize Vertex AI
-        aiplatform.init(project=project_id, location=location)
-
-        # Initialize Gemini
-        genai.configure()
-
-        self.model = genai.GenerativeModel(model)
-        self.embedding_model = embedding_model
-
-    def generate_response(
-        self,
-        query: str,
-        context: List[Dict[str, Any]],
-        max_tokens: int = 1000,
-        **kwargs
-    ) -> str:
-        """Generate a response using GCP's Gemini model.
-        
-        Args:
-            query: The user's query
-            context: List of relevant context chunks
-            max_tokens: Maximum number of tokens in the response
+            project_id: Google Cloud project ID
+            location: Google Cloud location
+            model: Model name
             
-        Returns:
-            Generated response text
+        Raises:
+            ConfigurationError: If initialization fails
+            ValidationError: If input validation fails
         """
-        # Format context into a single string
-        context_text = "\n\n".join([chunk["text"] for chunk in context])
+        settings = get_settings()
 
-        # Create prompt
-        prompt = f"""Context:
-            {context_text}
+        if not project_id and not settings.gcp_project_id:
+            raise ValidationError(ERROR_INVALID_PROJECT)
+        if not location and not settings.gcp_location:
+            raise ValidationError(ERROR_INVALID_LOCATION)
+        if not model and not settings.gcp_model:
+            raise ValidationError(ERROR_INVALID_MODEL)
 
-            Question: {query}
+        try:
+            self.project_id = project_id or settings.gcp_project_id
+            self.location = location or settings.gcp_location
+            self.model = model or settings.gcp_model
 
-            Please provide a helpful answer based on the context above."""
-
-        # Generate response
-        response = self.model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
-                max_output_tokens=max_tokens,
-                temperature=0.7
+            # Initialize Vertex AI
+            generative_models.init(
+                project=self.project_id,
+                location=self.location
             )
-        )
+        except Exception as e:
+            raise ConfigurationError(f"Failed to initialize Google Cloud client: {str(e)}") from e
 
-        return response.text
-
-    def get_embeddings(self, texts: List[str]) -> List[List[float]]:
-        """Get embeddings using Vertex AI.
+    def generate(
+        self,
+        prompt: str,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None
+    ) -> str:
+        """Generate text using Google Cloud.
         
         Args:
-            texts: List of texts to get embeddings for
+            prompt: The prompt to generate text from
+            temperature: Sampling temperature
+            max_tokens: Maximum number of tokens to generate
             
         Returns:
-            List of embedding vectors
+            Generated text
+            
+        Raises:
+            LLMError: If generation fails
         """
-        embeddings = []
-        model = TextEmbeddingModel.from_pretrained(self.embedding_model)
-        for text in texts:
-            response = model.get_embeddings([text])
-            embeddings.append(response[0].values)
-        return embeddings
+        try:
+            settings = get_settings()
+            model = generative_models.GenerativeModel(self.model)
+            response = model.generate_content(
+                prompt,
+                generation_config={
+                    "temperature": temperature or settings.llm_temperature,
+                    "max_output_tokens": max_tokens or settings.llm_max_tokens
+                }
+            )
+            return response.text
+        except Exception as e:
+            raise LLMError(f"Failed to generate text: {str(e)}") from e
 
-    def get_model_info(self) -> Dict[str, Any]:
-        """Get information about the GCP models being used."""
-        return {
-            "provider": "gcp",
-            "chat_model": self.model.model_name,
-            "embedding_model": self.embedding_model
-        }
+    def get_provider_info(self) -> Dict[str, Any]:
+        """Get information about the Google Cloud provider.
+        
+        Returns:
+            Dictionary containing provider information
+            
+        Raises:
+            LLMError: If info retrieval fails
+        """
+        try:
+            return {
+                "type": LLM_PROVIDER_TYPE_GCP,
+                "model": self.model,
+                "project": self.project_id,
+                "location": self.location
+            }
+        except Exception as e:
+            raise LLMError(f"Failed to get provider info: {str(e)}") from e

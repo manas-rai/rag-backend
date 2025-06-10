@@ -4,14 +4,20 @@ from typing import List, Dict, Any
 from sentence_transformers import SentenceTransformer
 from app.embedding import EmbeddingProvider
 from app.exceptions import EmbeddingError, ConfigurationError, ValidationError
+from app.constants import (
+    EMBEDDING_PROVIDER_TYPE_SENTENCE_TRANSFORMER,
+    ERROR_EMPTY_TEXT_LIST,
+    ERROR_INVALID_DEVICE
+)
+from app.config import get_settings
 
 class SentenceTransformerEmbeddingProvider(EmbeddingProvider):
     """Sentence Transformer implementation of embedding provider."""
 
     def __init__(
         self,
-        model_name: str = "msmarco-distilbert-cos-v5",
-        device: str = "cpu"
+        model_name: str = None,
+        device: str = None
     ):
         """Initialize Sentence Transformer provider.
         
@@ -21,13 +27,21 @@ class SentenceTransformerEmbeddingProvider(EmbeddingProvider):
             
         Raises:
             ConfigurationError: If model initialization fails
+            ValidationError: If device is invalid
         """
+        settings = get_settings()
+        self.model_name = model_name or settings.embedding_model
+        self.device = device or settings.embedding_device
+
+        if self.device not in ["cpu", "cuda"]:
+            raise ValidationError(ERROR_INVALID_DEVICE)
+
         try:
-            self.model = SentenceTransformer(model_name)
-            self.model_name = model_name
-            self.device = device
+            self.model = SentenceTransformer(self.model_name)
         except Exception as e:
-            raise ConfigurationError(f"Failed to initialize Sentence Transformer model: {str(e)}") from e
+            raise ConfigurationError(
+                f"Failed to initialize Sentence Transformer model: {str(e)}"
+                ) from e
 
     def get_embeddings(self, texts: List[str]) -> List[List[float]]:
         """Get embeddings for a list of texts.
@@ -43,17 +57,17 @@ class SentenceTransformerEmbeddingProvider(EmbeddingProvider):
             ValidationError: If input validation fails
         """
         if not texts:
-            raise ValidationError("Empty text list provided")
-            
+            raise ValidationError(ERROR_EMPTY_TEXT_LIST)
+
         try:
             # Sentence Transformers can handle batch processing efficiently
             embeddings = self.model.encode(texts)
-            
+
             # Convert numpy arrays to lists if needed
             if hasattr(embeddings, 'tolist'):
                 return embeddings.tolist()
             return embeddings
-            
+
         except Exception as e:
             raise EmbeddingError(f"Failed to generate embeddings: {str(e)}") from e
 
@@ -71,7 +85,7 @@ class SentenceTransformerEmbeddingProvider(EmbeddingProvider):
         except Exception as e:
             raise EmbeddingError(f"Failed to get embedding dimension: {str(e)}") from e
 
-    def get_model_info(self) -> Dict[str, Any]:
+    def get_provider_info(self) -> Dict[str, Any]:
         """Get information about the Sentence Transformers model being used.
         
         Returns:
@@ -82,10 +96,10 @@ class SentenceTransformerEmbeddingProvider(EmbeddingProvider):
         """
         try:
             return {
-                "type": "sentence_transformer",
+                "type": EMBEDDING_PROVIDER_TYPE_SENTENCE_TRANSFORMER,
                 "model": self.model_name,
                 "device": self.device,
                 "dimension": self.get_embedding_dimension()
             }
         except Exception as e:
-            raise EmbeddingError(f"Failed to get model info: {str(e)}") from e 
+            raise EmbeddingError(f"Failed to get model info: {str(e)}") from e

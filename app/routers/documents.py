@@ -1,6 +1,7 @@
 """Documents router for processing and storing documents."""
 
 from fastapi import APIRouter, Depends, HTTPException
+from app.constants import ERROR_NOT_FOUND
 from app.models.requests import DocumentRequest
 from app.models.responses import DocumentResponse
 from app.dependencies import get_document_service
@@ -9,7 +10,7 @@ from app.services.document_service import DocumentService
 router = APIRouter(
     prefix="/documents",
     tags=["documents"],
-    responses={404: {"description": "Not found"}},
+    responses={404: {"description": ERROR_NOT_FOUND}},
 )
 
 @router.post("", response_model=DocumentResponse, status_code=201)
