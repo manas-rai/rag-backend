@@ -4,15 +4,15 @@ import json
 from typing import List, Dict, Any, Optional
 import boto3
 from app.llm import LLMProvider
-from utils.exceptions import LLMError, ConfigurationError, ValidationError
-from utils.constants import (
+from app.utils.exceptions import LLMError, ConfigurationError, ValidationError
+from app.utils.constants import (
     LLM_PROVIDER_TYPE_AWS,
     ERROR_INVALID_ACCESS_KEY,
     ERROR_INVALID_SECRET_KEY,
     ERROR_INVALID_REGION,
     ERROR_INVALID_MODEL
 )
-from utils.config import get_settings
+from app.utils.config import get_settings
 
 class AWSLLMProvider(LLMProvider):
     """AWS Bedrock implementation of LLM provider."""

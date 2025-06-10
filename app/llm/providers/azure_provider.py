@@ -3,15 +3,15 @@
 from typing import List, Dict, Any, Optional
 from openai import AzureOpenAI
 from app.llm import LLMProvider
-from utils.exceptions import LLMError, ConfigurationError, ValidationError
-from utils.constants import (
+from app.utils.exceptions import LLMError, ConfigurationError, ValidationError
+from app.utils.constants import (
     LLM_PROVIDER_TYPE_AZURE,
     ERROR_INVALID_API_KEY,
     ERROR_INVALID_API_BASE,
     ERROR_INVALID_API_VERSION,
     ERROR_INVALID_DEPLOYMENT
 )
-from utils.config import get_settings
+from app.utils.config import get_settings
 
 class AzureLLMProvider(LLMProvider):
     """Azure OpenAI implementation of LLM provider."""

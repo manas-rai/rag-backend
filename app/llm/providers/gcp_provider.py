@@ -3,14 +3,14 @@
 from typing import Dict, Any, Optional
 from vertexai import generative_models
 from app.llm import LLMProvider
-from utils.exceptions import LLMError, ConfigurationError, ValidationError
-from utils.constants import (
+from app.utils.exceptions import LLMError, ConfigurationError, ValidationError
+from app.utils.constants import (
     LLM_PROVIDER_TYPE_GCP,
     ERROR_INVALID_PROJECT,
     ERROR_INVALID_LOCATION,
     ERROR_INVALID_MODEL
 )
-from utils.config import get_settings
+from app.utils.config import get_settings
 
 class GCPLLMProvider(LLMProvider):
     """Google Cloud implementation of LLM provider."""

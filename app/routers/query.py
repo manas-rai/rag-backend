@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends
 from app.models.requests import QueryRequest
 from app.models.responses import QueryResponse
-from utils.dependencies import get_document_processor, get_llm_provider
+from app.utils.dependencies import get_document_processor, get_llm_provider
 from app.document.pre_processor import DocumentPreProcessor
 from app.llm import LLMProvider
 
