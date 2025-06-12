@@ -218,11 +218,14 @@ async def get_document_service(
 ) -> DocumentService:
     """Get the document service instance."""
     try:
-        try:
-            body = json.loads(await request.body())
-            config = body.get('config', {})
-        except (ValueError, AttributeError):
-            config = {}
+        config = {}
+        # Only try to parse JSON body if it's not a file upload
+        if request.headers.get("content-type", "").startswith("application/json"):
+            try:
+                body = json.loads(await request.body())
+                config = body.get('config', {})
+            except (ValueError, AttributeError):
+                pass
 
         document_processor = get_document_processor()
         text_splitter = get_text_splitter(settings=settings, config=config)

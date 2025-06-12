@@ -1,8 +1,8 @@
 """Documents router for processing and storing documents."""
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from app.utils.constants import ERROR_NOT_FOUND
-from app.models.requests import DocumentRequest
+from app.models.requests import DocumentRequest, PDFFile
 from app.models.responses import DocumentResponse
 from app.utils.dependencies import get_document_service
 from app.services.document_service import DocumentService
@@ -43,18 +43,32 @@ async def process_documents(
 
 @router.post("/upload")
 async def upload_document(
-    file: UploadFile = File(...),
+    pdf_file: PDFFile = File(...),
     document_service: DocumentService = Depends(get_document_service)
 ):
     """Upload and process a document."""
     try:
-        logger.info("Processing document: %s", file.filename)
-        result = await document_service.process_document(file)
-        logger.info("Successfully processed document: %s", file.filename)
+        logger.info("Processing document: %s", pdf_file.file.filename)
+
+        # Read file content as binary
+        content = await pdf_file.file.read()
+        if not content:
+            logger.error("Empty file received")
+            raise HTTPException(
+                status_code=400,
+                detail="Empty file received"
+            )
+
+        # Process the file
+        result = await document_service.process_pdf_and_store(content)
+        logger.info("Successfully processed document: %s", pdf_file.file.filename)
         return result
+
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error("Error processing document %s: %s", file.filename, str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Error processing document %s: %s", pdf_file.file.filename, str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 @router.get("/list")
 async def list_documents(
@@ -68,7 +82,7 @@ async def list_documents(
         return documents
     except Exception as e:
         logger.error("Error listing documents: %s", str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 @router.delete("/{document_id}")
 async def delete_document(
@@ -83,4 +97,4 @@ async def delete_document(
         return {"message": "Document deleted successfully"}
     except Exception as e:
         logger.error("Error deleting document %s: %s", document_id, str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e

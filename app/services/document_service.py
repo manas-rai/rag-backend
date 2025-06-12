@@ -99,3 +99,15 @@ class DocumentService:
     async def list_documents(self, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
         """List documents in the vector store."""
         return await self.vector_store.list_documents(limit, offset)
+
+    async def process_pdf_and_store(self, file: bytes) -> str:
+        """Process a PDF file and store it in the vector store."""
+        try:
+            # Process the document
+            content = await self.document_processor.process_pdf_document(file)
+            doc_id = await self.process_and_store_document(content)
+
+            return doc_id
+        except Exception as e:
+            logger.error("Failed to process and store PDF: %s", str(e))
+            raise e

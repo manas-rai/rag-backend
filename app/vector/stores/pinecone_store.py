@@ -184,10 +184,10 @@ class PineconeVectorStore(VectorStore):
 
                 # Prepare metadata for this chunk
                 chunk_metadata = {
-                    "text": text,
-                    "doc_id": doc_id,
-                    "chunk_index": i,
-                    "total_chunks": len(texts)
+                    METADATA_KEY_TEXT: text,
+                    METADATA_KEY_DOC_ID: doc_id,
+                    METADATA_KEY_CHUNK_INDEX: i,
+                    METADATA_KEY_TOTAL_CHUNKS: len(texts)
                 }
 
                 # Add additional metadata if provided
