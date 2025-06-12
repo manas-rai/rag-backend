@@ -12,5 +12,5 @@ class DocumentResponse(BaseResponse):
 class QueryResponse(BaseResponse):
     """Response model for query results."""
     answer: str = Field(..., description="Generated answer based on context")
-    context: List[str] = Field(..., description="Relevant context chunks used for generation")
+    sources: List[str] = Field(..., description="Relevant context chunks used for generation")
     model_used: str = Field(..., description="The LLM model used for generation")

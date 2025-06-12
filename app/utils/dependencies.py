@@ -28,47 +28,50 @@ from app.services.query_service import QueryService
 _vector_store_dimensions = {}
 
 def get_llm_provider(
-    settings: Settings = Depends(get_settings),
-    provider_type: Optional[str] = None,
-    api_key: Optional[str] = None,
-    api_base: Optional[str] = None,
-    api_version: Optional[str] = None,
-    deployment_name: Optional[str] = None,
-    project_id: Optional[str] = None,
-    location: Optional[str] = None,
-    model: Optional[str] = None,
-    access_key_id: Optional[str] = None,
-    secret_access_key: Optional[str] = None,
-    region: Optional[str] = None
+    settings: Settings,
+    config: dict
+    # provider_type: Optional[str] = None,
+    # api_key: Optional[str] = None,
+    # api_base: Optional[str] = None,
+    # api_version: Optional[str] = None,
+    # deployment_name: Optional[str] = None,
+    # project_id: Optional[str] = None,
+    # location: Optional[str] = None,
+    # model: Optional[str] = None,
+    # access_key_id: Optional[str] = None,
+    # secret_access_key: Optional[str] = None,
+    # region: Optional[str] = None
 ) -> LLMProvider:
     """Get the configured LLM provider."""
-    provider_type = provider_type or settings.llm_provider
+    provider_type = config.get('llm_provider') \
+        or getattr(settings, 'llm_provider', 'groq')
     provider_class = get_llm_provider_class(provider_type)
 
     if provider_type == "azure":
         return provider_class(
-            api_key=api_key or settings.azure_api_key,
-            api_base=api_base or settings.azure_api_base,
-            api_version=api_version or settings.azure_api_version,
-            deployment_name=deployment_name or settings.azure_deployment_name
+            api_key=config.get('azure_api_key') or settings.azure_api_key,
+            api_base=config.get('azure_api_base') or settings.azure_api_base,
+            api_version=config.get('azure_api_version') or settings.azure_api_version,
+            deployment_name=config.get('azure_deployment_name') \
+                or getattr(settings, 'azure_deployment_name', 'text-embedding-ada-002')
         )
     elif provider_type == "gcp":
         return provider_class(
-            project_id=project_id or settings.gcp_project_id,
-            location=location or settings.gcp_location,
-            model=model or settings.gcp_model
+            project_id=config.get('gcp_project_id') or settings.gcp_project_id,
+            location=config.get('gcp_location') or settings.gcp_location,
+            model=config.get('gcp_model') or settings.gcp_model
         )
     elif provider_type == "aws":
         return provider_class(
-            access_key_id=access_key_id or settings.aws_access_key_id,
-            secret_access_key=secret_access_key or settings.aws_secret_access_key,
-            region=region or settings.aws_region,
-            model=model or settings.aws_model
+            access_key_id=config.get('aws_access_key_id') or settings.aws_access_key_id,
+            secret_access_key=config.get('aws_secret_access_key') or settings.aws_secret_access_key,
+            region=config.get('aws_region') or settings.aws_region,
+            model=config.get('aws_model') or settings.aws_model
         )
     elif provider_type == "groq":
         return provider_class(
-            api_key=api_key or settings.groq_api_key,
-            model=model or settings.groq_model
+            api_key=config.get('groq_api_key') or settings.groq_api_key,
+            model=config.get('groq_model') or settings.groq_model
         )
     else:
         raise ValueError(f"Unsupported LLM provider: {provider_type}")
@@ -242,15 +245,24 @@ async def get_document_service(
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@lru_cache()
-def get_query_service(
-    llm_provider = Depends(get_llm_provider),
-    vector_store = Depends(get_vector_store),
-    embedding_provider = Depends(get_embedding_provider)
+async def get_query_service(
+    request: Request,
+    settings: Settings = Depends(get_settings)
 ) -> QueryService:
     """Get the query service instance."""
+    try:
+        body = json.loads(await request.body())
+        config = body.get('config', {})
+    except (ValueError, AttributeError):
+        pass
+
+    document_processor = get_document_processor()
+    llm_provider = get_llm_provider(settings=settings, config=config)
+    vector_store = get_vector_store(settings=settings, config=config)
+    embedding_provider = get_embedding_provider(settings=settings, config=config)
     return QueryService(
         llm_provider=llm_provider,
         vector_store=vector_store,
-        embedding_provider=embedding_provider
+        embedding_provider=embedding_provider,
+        document_processor=document_processor
     )

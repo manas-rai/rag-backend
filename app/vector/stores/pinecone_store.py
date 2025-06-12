@@ -218,7 +218,8 @@ class PineconeVectorStore(VectorStore):
 
     def similarity_search(
         self,
-        query: str,
+        query_embedding: List[float],
+        query: Optional[str] = None,
         k: int = 4,
         filters: Optional[Dict[str, Any]] = None
     ) -> List[Dict[str, Any]]:
@@ -239,7 +240,7 @@ class PineconeVectorStore(VectorStore):
         try:
             # Perform similarity search
             search_results = self.index.query(
-                vector=query,
+                vector=query_embedding,
                 top_k=k,
                 include_metadata=True,
                 filter=filters

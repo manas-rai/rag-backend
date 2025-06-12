@@ -30,9 +30,8 @@ class GroqLLMProvider(LLMProvider):
 
     def generate_response(
         self,
-        query: str,
-        context: List[Dict[str, Any]],
-        max_tokens: int = 1000,
+        system_prompt: str,
+        user_prompt: str,
         **kwargs
     ) -> str:
         """Generate a response using Groq.
@@ -45,18 +44,15 @@ class GroqLLMProvider(LLMProvider):
         Returns:
             Generated response text
         """
-        # Format context into a single string
-        context_text = "\n\n".join([chunk["text"] for chunk in context])
-
         # Create messages for the chat completion
         messages = [
             {
                 "role": "system",
-                "content": "You are a helpful assistant that answers based on context."
+                "content": system_prompt
             },
             {
                 "role": "user",
-                "content": f"Context:\n{context_text}\n\nQuestion: {query}"
+                "content": user_prompt
             }
         ]
 
@@ -64,8 +60,8 @@ class GroqLLMProvider(LLMProvider):
         response = self.client.chat.completions.create(
             model=self.model,
             messages=messages,
-            max_tokens=max_tokens,
-            temperature=0.7
+            max_tokens=kwargs.get("max_tokens", 1000),
+            temperature=kwargs.get("temperature", 0.7)
         )
 
         return response.choices[0].message.content

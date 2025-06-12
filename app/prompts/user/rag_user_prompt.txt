@@ -1,0 +1,27 @@
+# Retrieved Document Chunks
+{context}
+
+# User Query
+{query}
+
+# Query Parameters
+- Temperature: {temperature}
+- Max Tokens: {max_tokens}
+- Number of Retrieved Chunks: {num_sources}
+- Chunk Size: {chunk_size}
+- Similarity Threshold: {similarity_threshold}
+
+# Response Requirements
+1. Answer the query using ONLY the information from the retrieved chunks
+2. Structure your response as follows:
+   - Direct Answer: Start with a clear, concise answer
+   - Supporting Evidence: Reference specific chunks that support your answer
+   - Source Citations: Include relevant metadata for each cited chunk
+   - Limitations: Note any gaps or uncertainties in the information
+
+# Additional Context
+- Query Type: {query_type}
+- Document Types: {document_types}
+- Time Period: {time_period}
+
+Response: 
