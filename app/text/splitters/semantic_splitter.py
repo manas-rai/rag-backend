@@ -3,6 +3,9 @@
 from typing import List, Dict, Any
 from langchain_experimental.text_splitter import SemanticChunker
 from app.text import TextSplitter
+from app.utils.logger import setup_logger
+
+logger = setup_logger('semantic_splitter')
 
 class SemanticTextSplitter(TextSplitter):
     """Semantic text splitter that splits text based on semantic meaning."""
@@ -34,6 +37,9 @@ class SemanticTextSplitter(TextSplitter):
             sentence_split_regex=r"(?<=[.?!])\s+",
             min_chunk_size=chunk_size
         )
+        logger.info("""Initialized semantic text splitter with chunk size: %d,
+                    chunk overlap: %d, embedding function: %s""",
+                    chunk_size, chunk_overlap, embedding_function)
 
     def split_text(self, text: str) -> List[str]:
         """Split text into chunks based on semantic meaning.
@@ -44,7 +50,12 @@ class SemanticTextSplitter(TextSplitter):
         Returns:
             List of text chunks
         """
-        return self.splitter.split_text(text)
+        try:
+            logger.info("Splitting text: %s", text)
+            return self.splitter.split_text(text)
+        except Exception as e:
+            logger.error("Failed to split text: %s", str(e))
+            raise e
 
     def get_config(self) -> Dict[str, Any]:
         """Get the configuration of the splitter.
@@ -52,9 +63,15 @@ class SemanticTextSplitter(TextSplitter):
         Returns:
             Dictionary containing splitter configuration
         """
-        return {
-            "type": "semantic",
-            "chunk_size": self.chunk_size,
-            "chunk_overlap": self.chunk_overlap,
-            "has_embedding_function": self.embedding_function is not None
-        }
+        try:
+            logger.info("Getting config for semantic splitter")
+            return {
+                "type": "semantic",
+                "chunk_size": self.chunk_size,
+                "chunk_overlap": self.chunk_overlap,
+                "has_embedding_function": self.embedding_function is not None
+            }
+        except Exception as e:
+            logger.error("Failed to get config: %s", str(e))
+            raise e
+

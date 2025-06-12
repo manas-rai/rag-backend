@@ -10,6 +10,9 @@ from app.utils.constants import (
     ERROR_INVALID_DEVICE
 )
 from app.utils.config import get_settings
+from app.utils.logger import setup_logger
+
+logger = setup_logger('sentence_transformer_embedding')
 
 class SentenceTransformerEmbeddingProvider(EmbeddingProvider):
     """Sentence Transformer implementation of embedding provider."""
@@ -37,7 +40,9 @@ class SentenceTransformerEmbeddingProvider(EmbeddingProvider):
             raise ValidationError(ERROR_INVALID_DEVICE)
 
         try:
+            logger.info("Initializing Sentence Transformer with model: %s", self.model_name)
             self.model = SentenceTransformer(self.model_name)
+            logger.info("Successfully loaded Sentence Transformer model")
         except Exception as e:
             raise ConfigurationError(
                 f"Failed to initialize Sentence Transformer model: {str(e)}"
@@ -60,8 +65,10 @@ class SentenceTransformerEmbeddingProvider(EmbeddingProvider):
             raise ValidationError(ERROR_EMPTY_TEXT_LIST)
 
         try:
+            logger.info("Generating embeddings for %d texts", len(texts))
             # Sentence Transformers can handle batch processing efficiently
             embeddings = self.model.encode(texts)
+            logger.info("Successfully generated %d embeddings", len(embeddings))
 
             # Convert numpy arrays to lists if needed
             if hasattr(embeddings, 'tolist'):
@@ -69,6 +76,7 @@ class SentenceTransformerEmbeddingProvider(EmbeddingProvider):
             return embeddings
 
         except Exception as e:
+            logger.error("Error generating embeddings: %s", str(e))
             raise EmbeddingError(f"Failed to generate embeddings: {str(e)}") from e
 
     def get_embedding_dimension(self) -> int:

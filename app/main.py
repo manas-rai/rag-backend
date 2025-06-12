@@ -2,6 +2,7 @@
 
 from typing import Dict, Any
 import os
+from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 from app.routers import documents, query
@@ -10,11 +11,30 @@ from app.embedding.registry import get_available_providers as get_embedding_prov
 from app.vector.registry import get_available_providers as get_vector_providers
 from app.text.registry import get_available_splitters as get_text_splitters
 from app.utils.config import get_settings
+from app.utils.logger import setup_logger
+
+# Set up logger
+logger = setup_logger('main')
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan event handler for startup and shutdown."""
+    # Startup
+    logger.info("Starting up RAG Backend application...")
+    settings = get_settings()
+    logger.info("Using LLM provider: %s", settings.llm_provider)
+    logger.info("Using embedding provider: %s", settings.embedding_provider)
+    logger.info("Using vector provider: %s", getattr(settings, 'vector_provider', 'chroma'))
+    logger.info("Using text splitter: %s", getattr(settings, 'text_splitter', 'langchain'))
+    yield
+    # Shutdown
+    logger.info("Shutting down RAG Backend application...")
 
 app = FastAPI(
     title="RAG Backend",
     description="Retrieval-Augmented Generation Backend API",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Parse CORS settings from environment variables
@@ -38,6 +58,8 @@ cors_allow_methods = parse_cors_list("CORS_ALLOW_METHODS", ["*"])
 cors_allow_headers = parse_cors_list("CORS_ALLOW_HEADERS", ["*"])
 cors_allow_credentials = parse_cors_bool("CORS_ALLOW_CREDENTIALS", True)
 
+logger.info("Configuring CORS with origins: %s", cors_origins)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
@@ -49,17 +71,20 @@ app.add_middleware(
 # Include routers
 app.include_router(documents.router)
 app.include_router(query.router)
+logger.info("Routers configured successfully")
 
 @app.get("/")
 async def root() -> Dict[str, Any]:
     """Root endpoint with component information."""
+    logger.info("Root endpoint accessed")
     settings = get_settings()
+    logger.debug("Retrieved application settings")
 
     return {
         "message": "Welcome to RAG Backend API",
         "version": "1.0.0",
         "docs_url": "/docs",
-        "current_configuration": {
+        "default_configuration": {
             "llm_provider": settings.llm_provider,
             "embedding_provider": settings.embedding_provider,
             "vector_provider": getattr(settings, 'vector_provider', 'chroma'),
@@ -84,4 +109,5 @@ async def root() -> Dict[str, Any]:
 
 if __name__ == "__main__":
     import uvicorn
+    logger.info("Starting uvicorn server")
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -21,6 +21,9 @@ from app.utils.constants import (
     METADATA_KEY_TOTAL_CHUNKS
 )
 from app.utils.config import get_settings
+from app.utils.logger import setup_logger
+
+logger = setup_logger('pinecone_store')
 
 class PineconeVectorStore(VectorStore):
     """Pinecone implementation of vector store."""
@@ -63,7 +66,9 @@ class PineconeVectorStore(VectorStore):
             # Initialize Pinecone client
             self.pc = Pinecone(api_key=api_key)
             self._initialize_index()
+            logger.info("Initialized Pinecone vector store")
         except Exception as e:
+            logger.error("Failed to initialize Pinecone vector store: %s", str(e))
             raise ConfigurationError(f"Failed to initialize Pinecone vector store: {str(e)}") from e
 
     def _initialize_index(self) -> None:
@@ -80,6 +85,7 @@ class PineconeVectorStore(VectorStore):
             self.index = self.pc.Index(self.index_name)
 
         except Exception as e:
+            logger.error("Failed to initialize Pinecone index: %s", str(e))
             raise ConfigurationError(f"Failed to initialize Pinecone index: {str(e)}") from e
 
     def add_texts(
@@ -135,12 +141,14 @@ class PineconeVectorStore(VectorStore):
             for i in range(0, len(vectors), VECTOR_STORE_BATCH_SIZE):
                 batch = vectors[i:i + VECTOR_STORE_BATCH_SIZE]
                 self.index.upsert(vectors=batch)
-
+                logger.info("Upserted %d vectors to Pinecone", len(batch))
             return doc_id
 
-        except ValidationError:
+        except ValidationError as ve:
+            logger.error("Validation error: %s", str(ve))
             raise
         except Exception as e:
+            logger.error("Failed to add texts to Pinecone: %s", str(e))
             raise VectorStoreError(f"Failed to add texts to Pinecone: {str(e)}") from e
 
     def add_documents(
@@ -159,50 +167,54 @@ class PineconeVectorStore(VectorStore):
         Returns:
             Document ID for the stored document
         """
-        if not texts or not embeddings:
-            raise ValueError("Both texts and embeddings must be provided")
+        try:
+            if not texts or not embeddings:
+                raise ValueError("Both texts and embeddings must be provided")
 
-        if len(texts) != len(embeddings):
-            raise ValueError("Number of texts must match number of embeddings")
+            if len(texts) != len(embeddings):
+                raise ValueError("Number of texts must match number of embeddings")
 
         # Generate a document ID
-        doc_id = str(uuid.uuid4())
+            doc_id = str(uuid.uuid4())
 
-        # Prepare vectors for upsert
-        vectors = []
-        for i, (text, embedding) in enumerate(zip(texts, embeddings)):
-            chunk_id = f"{doc_id}_chunk_{i}"
+            # Prepare vectors for upsert
+            vectors = []
+            for i, (text, embedding) in enumerate(zip(texts, embeddings)):
+                chunk_id = f"{doc_id}_chunk_{i}"
 
-            # Prepare metadata for this chunk
-            chunk_metadata = {
-                "text": text,
-                "doc_id": doc_id,
-                "chunk_index": i,
-                "total_chunks": len(texts)
-            }
+                # Prepare metadata for this chunk
+                chunk_metadata = {
+                    "text": text,
+                    "doc_id": doc_id,
+                    "chunk_index": i,
+                    "total_chunks": len(texts)
+                }
 
-            # Add additional metadata if provided
-            if metadata:
-                if isinstance(metadata, dict):
-                    # Same metadata for all chunks
-                    chunk_metadata.update(metadata)
-                elif isinstance(metadata, list) and i < len(metadata):
-                    # Different metadata for each chunk
-                    chunk_metadata.update(metadata[i])
+                # Add additional metadata if provided
+                if metadata:
+                    if isinstance(metadata, dict):
+                        # Same metadata for all chunks
+                        chunk_metadata.update(metadata)
+                    elif isinstance(metadata, list) and i < len(metadata):
+                        # Different metadata for each chunk
+                        chunk_metadata.update(metadata[i])
 
-            vectors.append({
-                "id": chunk_id,
-                "values": embedding,
-                "metadata": chunk_metadata
-            })
+                vectors.append({
+                    "id": chunk_id,
+                    "values": embedding,
+                    "metadata": chunk_metadata
+                })
 
-        # Upsert vectors in batches (Pinecone recommends batch size of 100)
-        batch_size = 100
-        for i in range(0, len(vectors), batch_size):
-            batch = vectors[i:i + batch_size]
-            self.index.upsert(vectors=batch)
-
-        return doc_id
+            # Upsert vectors in batches (Pinecone recommends batch size of 100)
+            batch_size = 100
+            for i in range(0, len(vectors), batch_size):
+                batch = vectors[i:i + batch_size]
+                self.index.upsert(vectors=batch)
+                logger.info("Upserted %d vectors to Pinecone", len(batch))
+            return doc_id
+        except Exception as e:
+            logger.error("Failed to add documents to Pinecone: %s", str(e))
+            raise VectorStoreError(f"Failed to add documents to Pinecone: {str(e)}") from e
 
     def similarity_search(
         self,
@@ -253,9 +265,11 @@ class PineconeVectorStore(VectorStore):
 
             return results
 
-        except ValidationError:
+        except ValidationError as ve:
+            logger.error("Validation error: %s", str(ve))
             raise
         except Exception as e:
+            logger.error("Failed to perform similarity search: %s", str(e))
             raise VectorStoreError(f"Failed to perform similarity search: {str(e)}") from e
 
     def delete(self, texts: List[str]) -> None:
@@ -276,9 +290,12 @@ class PineconeVectorStore(VectorStore):
             self.index.delete(
                 filter={METADATA_KEY_TEXT: {"$in": texts}}
             )
-        except ValidationError:
+            logger.info("Deleted texts from Pinecone: %s", texts)
+        except ValidationError as ve:
+            logger.error("Validation error: %s", str(ve))
             raise
         except Exception as e:
+            logger.error("Failed to delete texts: %s", str(e))
             raise VectorStoreError(f"Failed to delete texts: {str(e)}") from e
 
     def get_document(self, doc_id: str) -> Optional[Dict[str, Any]]:
@@ -332,9 +349,11 @@ class PineconeVectorStore(VectorStore):
 
             return document
 
-        except ValidationError:
+        except ValidationError as ve:
+            logger.error("Validation error: %s", str(ve))
             raise
         except Exception as e:
+            logger.error("Failed to retrieve document: %s", str(e))
             raise VectorStoreError(f"Failed to retrieve document: {str(e)}") from e
 
     def list_documents(self, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
@@ -388,9 +407,11 @@ class PineconeVectorStore(VectorStore):
             doc_list = list(documents.values())
             return doc_list[offset:offset + limit]
 
-        except ValidationError:
+        except ValidationError as ve:
+            logger.error("Validation error: %s", str(ve))
             raise
         except Exception as e:
+            logger.error("Failed to list documents: %s", str(e))
             raise VectorStoreError(f"Failed to list documents: {str(e)}") from e
 
     def clear(self) -> None:
@@ -401,7 +422,9 @@ class PineconeVectorStore(VectorStore):
         """
         try:
             self.index.delete(delete_all=True)
+            logger.info("Cleared Pinecone index")
         except Exception as e:
+            logger.error("Failed to clear index: %s", str(e))
             raise VectorStoreError(f"Failed to clear index: {str(e)}") from e
 
     def get_config(self) -> Dict[str, Any]:
@@ -414,6 +437,7 @@ class PineconeVectorStore(VectorStore):
             VectorStoreError: If config retrieval fails
         """
         try:
+            logger.info("Getting config for Pinecone store")
             return {
                 "type": VECTOR_STORE_TYPE_PINECONE,
                 "index_name": self.index_name,
@@ -421,4 +445,5 @@ class PineconeVectorStore(VectorStore):
                 "metric": self.metric
             }
         except Exception as e:
+            logger.error("Failed to get config: %s", str(e))
             raise VectorStoreError(f"Failed to get config: {str(e)}") from e

@@ -11,6 +11,9 @@ from app.utils.constants import (
     ERROR_INVALID_MODEL
 )
 from app.utils.config import get_settings
+from app.utils.logger import setup_logger
+
+logger = setup_logger('gcp_llm')
 
 class GCPLLMProvider(LLMProvider):
     """Google Cloud implementation of LLM provider."""
@@ -47,14 +50,14 @@ class GCPLLMProvider(LLMProvider):
             self.model = model or settings.gcp_model
 
             # Initialize Vertex AI
-            generative_models.init(
-                project=self.project_id,
-                location=self.location
-            )
+            generative_models.GenerativeModel(self.model)
+            logger.info("Initialized GCP with project: %s, location: %s, model: %s",
+                        self.project_id, self.location, self.model)
         except Exception as e:
-            raise ConfigurationError(f"Failed to initialize Google Cloud client: {str(e)}") from e
+            logger.error("Failed to initialize GCP client: %s", str(e))
+            raise ConfigurationError(f"Failed to initialize GCP client: {str(e)}") from e
 
-    def generate(
+    def generate_response(
         self,
         prompt: str,
         temperature: Optional[float] = None,
@@ -83,11 +86,13 @@ class GCPLLMProvider(LLMProvider):
                     "max_output_tokens": max_tokens or settings.llm_max_tokens
                 }
             )
+            logger.info("Generated text: %s", response.text)
             return response.text
         except Exception as e:
+            logger.error("Failed to generate text: %s", str(e))
             raise LLMError(f"Failed to generate text: {str(e)}") from e
 
-    def get_provider_info(self) -> Dict[str, Any]:
+    def get_model_info(self) -> Dict[str, Any]:
         """Get information about the Google Cloud provider.
         
         Returns:
@@ -97,6 +102,7 @@ class GCPLLMProvider(LLMProvider):
             LLMError: If info retrieval fails
         """
         try:
+            logger.info("Retrieving model info for GCP")
             return {
                 "type": LLM_PROVIDER_TYPE_GCP,
                 "model": self.model,
@@ -104,4 +110,5 @@ class GCPLLMProvider(LLMProvider):
                 "location": self.location
             }
         except Exception as e:
+            logger.error("Failed to get provider info: %s", str(e))
             raise LLMError(f"Failed to get provider info: {str(e)}") from e

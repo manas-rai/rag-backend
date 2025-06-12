@@ -1,18 +1,20 @@
 """AWS Bedrock implementation of LLM provider."""
 
 import json
-from typing import List, Dict, Any, Optional
+from typing import Dict, Any, Optional
 import boto3
 from app.llm import LLMProvider
 from app.utils.exceptions import LLMError, ConfigurationError, ValidationError
 from app.utils.constants import (
-    LLM_PROVIDER_TYPE_AWS,
     ERROR_INVALID_ACCESS_KEY,
     ERROR_INVALID_SECRET_KEY,
     ERROR_INVALID_REGION,
     ERROR_INVALID_MODEL
 )
 from app.utils.config import get_settings
+from app.utils.logger import setup_logger
+
+logger = setup_logger('aws_llm')
 
 class AWSLLMProvider(LLMProvider):
     """AWS Bedrock implementation of LLM provider."""
@@ -55,10 +57,12 @@ class AWSLLMProvider(LLMProvider):
                 region_name=region or settings.aws_region
             )
             self.model = model or settings.aws_model
+            logger.info("Initialized AWS Bedrock provider with model: %s", self.model)
         except Exception as e:
+            logger.error("Failed to initialize AWS Bedrock client: %s", str(e))
             raise ConfigurationError(f"Failed to initialize AWS Bedrock client: {str(e)}") from e
 
-    def generate(
+    def generate_response(
         self,
         prompt: str,
         temperature: Optional[float] = None,
@@ -87,49 +91,15 @@ class AWSLLMProvider(LLMProvider):
                     "max_tokens": max_tokens or settings.llm_max_tokens
                 })
             )
+            logger.info("Generated text: %s", json.loads(response['body'].read())['completion'])
             return json.loads(response['body'].read())['completion']
         except Exception as e:
+            logger.error("Failed to generate text: %s", str(e))
             raise LLMError(f"Failed to generate text: {str(e)}") from e
-
-    def get_provider_info(self) -> Dict[str, Any]:
-        """Get information about the AWS Bedrock provider.
-        
-        Returns:
-            Dictionary containing provider information
-            
-        Raises:
-            LLMError: If info retrieval fails
-        """
-        try:
-            return {
-                "type": LLM_PROVIDER_TYPE_AWS,
-                "model": self.model
-            }
-        except Exception as e:
-            raise LLMError(f"Failed to get provider info: {str(e)}") from e
-
-    def get_embeddings(self, texts: List[str]) -> List[List[float]]:
-        """Get embeddings using AWS Bedrock.
-        
-        Args:
-            texts: List of texts to get embeddings for
-            
-        Returns:
-            List of embedding vectors
-        """
-        embeddings = []
-        for text in texts:
-            response = self.client.invoke_model(
-                modelId=self.model,
-                body=json.dumps({
-                    "inputText": text
-                })
-            )
-            embeddings.append(json.loads(response["body"].read())["embedding"])
-        return embeddings
 
     def get_model_info(self) -> Dict[str, Any]:
         """Get information about the AWS models being used."""
+        logger.info("Retrieving model info for AWS Bedrock")
         return {
             "provider": "aws",
             "chat_model": self.model,

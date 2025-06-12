@@ -5,6 +5,9 @@ from app.document import DocumentPreProcessor
 from app.text import TextSplitter
 from app.vector import VectorStore
 from app.embedding import EmbeddingProvider
+from app.utils.logger import setup_logger
+
+logger = setup_logger('document_service')
 
 class DocumentService:
     """Service class for document processing, chunking, and vector storage operations."""
@@ -21,6 +24,7 @@ class DocumentService:
         self.text_splitter = text_splitter
         self.vector_store = vector_store
         self.embedding_provider = embedding_provider
+        logger.info("Document service initialized")
 
     async def process_and_store_document(
         self,
@@ -30,22 +34,26 @@ class DocumentService:
         chunk_overlap: Optional[int] = None
     ) -> str:
         """Process a document by chunking, creating embeddings, and storing in vector store."""
-        # Update chunk parameters if provided
-        if chunk_size is not None or chunk_overlap is not None:
-            self.text_splitter.update_parameters(
-                chunk_size=chunk_size,
-                chunk_overlap=chunk_overlap
-            )
+        try:
+            # Update chunk parameters if provided
+            if chunk_size is not None or chunk_overlap is not None:
+                self.text_splitter.update_parameters(
+                    chunk_size=chunk_size,
+                    chunk_overlap=chunk_overlap
+                )
 
-        # Split the document into chunks
-        chunks = self.text_splitter.split_text(content)
+            # Split the document into chunks
+            chunks = self.text_splitter.split_text(content)
 
-        # Create embeddings for chunks
-        embeddings = self.embedding_provider.get_embeddings(chunks)
+            # Create embeddings for chunks
+            embeddings = self.embedding_provider.get_embeddings(chunks)
 
-        # store chunks with their embeddings
-        doc_id = self.vector_store.add_documents(chunks, embeddings, metadata)
-        return doc_id
+            # store chunks with their embeddings
+            doc_id = self.vector_store.add_documents(chunks, embeddings, metadata)
+            return doc_id
+        except Exception as e:
+            logger.error("Failed to process and store document: %s", str(e))
+            raise e
 
     async def process_and_store_batch(
         self,

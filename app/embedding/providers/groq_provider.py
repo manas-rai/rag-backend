@@ -3,6 +3,9 @@
 from typing import List, Dict, Any
 from groq import Groq
 from app.embedding import EmbeddingProvider
+from app.utils.logger import setup_logger
+
+logger = setup_logger('groq_embedding')
 
 class GroqEmbeddingProvider(EmbeddingProvider):
     """Groq implementation of embedding provider."""
@@ -20,6 +23,7 @@ class GroqEmbeddingProvider(EmbeddingProvider):
         """
         self.client = Groq(api_key=api_key)
         self.model = model
+        logger.info("Initialized Groq embedding provider")
 
     def get_embeddings(self, texts: List[str]) -> List[List[float]]:
         """Get embeddings for a list of texts using Groq.
