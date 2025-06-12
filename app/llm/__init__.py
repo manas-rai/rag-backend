@@ -11,9 +11,5 @@ class LLMProvider(ABC):
         """Generate a response based on the query and context."""
 
     @abstractmethod
-    def get_embeddings(self, texts: List[str]) -> List[List[float]]:
-        """Generate embeddings for the given texts."""
-
-    @abstractmethod
     def get_model_info(self) -> Dict[str, Any]:
         """Get information about the model being used."""

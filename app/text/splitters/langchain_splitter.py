@@ -3,6 +3,9 @@
 from typing import List, Dict, Any
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from app.text import TextSplitter
+from app.utils.logger import setup_logger
+
+logger = setup_logger('langchain_splitter')
 
 class LangChainTextSplitter(TextSplitter):
     """LangChain implementation of text splitter."""
@@ -32,6 +35,9 @@ class LangChainTextSplitter(TextSplitter):
             chunk_overlap=chunk_overlap,
             separators=separators
         )
+        logger.info("""Initialized LangChain text splitter with chunk size: %d,
+                    chunk overlap: %d, separators: %s""",
+                    chunk_size, chunk_overlap, separators)
 
     def split_text(self, text: str) -> List[str]:
         """Split text into chunks.
@@ -42,7 +48,12 @@ class LangChainTextSplitter(TextSplitter):
         Returns:
             List of text chunks
         """
-        return self.splitter.split_text(text)
+        try:
+            logger.info("Splitting text: %s", text)
+            return self.splitter.split_text(text)
+        except Exception as e:
+            logger.error("Failed to split text: %s", str(e))
+            raise e
 
     def get_config(self) -> Dict[str, Any]:
         """Get the configuration of the splitter.
@@ -50,9 +61,14 @@ class LangChainTextSplitter(TextSplitter):
         Returns:
             Dictionary containing splitter configuration
         """
-        return {
-            "type": "langchain",
-            "chunk_size": self.chunk_size,
-            "chunk_overlap": self.chunk_overlap,
-            "separators": self.separators
-        }
+        try:
+            logger.info("Getting config for langchain splitter")
+            return {
+                "type": "langchain",
+                "chunk_size": self.chunk_size,
+                "chunk_overlap": self.chunk_overlap,
+                "separators": self.separators
+            }
+        except Exception as e:
+            logger.error("Failed to get config: %s", str(e))
+            raise e

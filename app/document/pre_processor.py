@@ -1,6 +1,9 @@
 """Document processor that coordinates text splitting, processing, and storage."""
 
 from typing import List, Dict, Any, Optional
+from app.utils.logger import setup_logger
+
+logger = setup_logger('document_preprocessor')
 
 class DocumentPreProcessor:
     """Document processor that coordinates text splitting, processing, and storage."""
@@ -8,7 +11,7 @@ class DocumentPreProcessor:
     def __init__(
         self
     ):
-        pass
+        logger.info("Initializing DocumentPreProcessor")
 
     def process_documents(
         self,

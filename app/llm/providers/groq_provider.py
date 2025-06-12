@@ -3,6 +3,9 @@
 from typing import List, Dict, Any
 from groq import Groq
 from app.llm import LLMProvider
+from app.utils.logger import setup_logger
+
+logger = setup_logger('groq_llm')
 
 class GroqLLMProvider(LLMProvider):
     """Groq implementation of LLM provider."""
@@ -23,6 +26,7 @@ class GroqLLMProvider(LLMProvider):
         self.client = Groq(api_key=api_key)
         self.model = model
         self.embedding_model = embedding_model
+        logger.info("Initialized Groq client with model: %s", self.model)
 
     def generate_response(
         self,
@@ -65,24 +69,6 @@ class GroqLLMProvider(LLMProvider):
         )
 
         return response.choices[0].message.content
-
-    def get_embeddings(self, texts: List[str]) -> List[List[float]]:
-        """Get embeddings for a list of texts using Groq.
-        
-        Args:
-            texts: List of texts to get embeddings for
-            
-        Returns:
-            List of embedding vectors
-        """
-        embeddings = []
-        for text in texts:
-            response = self.client.embeddings.create(
-                model=self.embedding_model,
-                input=text
-            )
-            embeddings.append(response.data[0].embedding)
-        return embeddings
 
     def get_model_info(self) -> Dict[str, Any]:
         """Get information about the Groq models being used."""

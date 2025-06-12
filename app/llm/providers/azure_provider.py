@@ -12,6 +12,9 @@ from app.utils.constants import (
     ERROR_INVALID_DEPLOYMENT
 )
 from app.utils.config import get_settings
+from app.utils.logger import setup_logger
+
+logger = setup_logger('azure_llm')
 
 class AzureLLMProvider(LLMProvider):
     """Azure OpenAI implementation of LLM provider."""
@@ -53,10 +56,13 @@ class AzureLLMProvider(LLMProvider):
                 azure_endpoint=api_base or settings.azure_api_base
             )
             self.deployment_name = deployment_name or settings.azure_deployment_name
+            logger.info("Initialized Azure OpenAI provider with deployment: %s",
+                        self.deployment_name)
         except Exception as e:
+            logger.error("Failed to initialize Azure OpenAI client: %s", str(e))
             raise ConfigurationError(f"Failed to initialize Azure OpenAI client: {str(e)}") from e
 
-    def generate(
+    def generate_response(
         self,
         prompt: str,
         temperature: Optional[float] = None,
@@ -83,86 +89,11 @@ class AzureLLMProvider(LLMProvider):
                 temperature=temperature or settings.llm_temperature,
                 max_tokens=max_tokens or settings.llm_max_tokens
             )
+            logger.info("Generated text: %s", response.choices[0].message.content)
             return response.choices[0].message.content
         except Exception as e:
+            logger.error("Failed to generate text: %s", str(e))
             raise LLMError(f"Failed to generate text: {str(e)}") from e
-
-    def get_provider_info(self) -> Dict[str, Any]:
-        """Get information about the Azure OpenAI provider.
-        
-        Returns:
-            Dictionary containing provider information
-            
-        Raises:
-            LLMError: If info retrieval fails
-        """
-        try:
-            return {
-                "type": LLM_PROVIDER_TYPE_AZURE,
-                "deployment": self.deployment_name
-            }
-        except Exception as e:
-            raise LLMError(f"Failed to get provider info: {str(e)}") from e
-
-    def generate_response(
-        self,
-        query: str,
-        context: List[Dict[str, Any]],
-        max_tokens: int = 1000,
-        **kwargs
-    ) -> str:
-        """Generate a response using Azure OpenAI.
-        
-        Args:
-            query: The user's query
-            context: List of relevant context chunks
-            max_tokens: Maximum number of tokens in the response
-            
-        Returns:
-            Generated response text
-        """
-        # Format context into a single string
-        context_text = "\n\n".join([chunk["text"] for chunk in context])
-
-        # Create messages for the chat completion
-        messages = [
-            {
-                "role": "system",
-                "content": "You are a helpful assistant that answers based on context."
-            },
-            {
-                "role": "user",
-                "content": f"Context:\n{context_text}\n\nQuestion: {query}"
-            }
-        ]
-
-        # Generate response
-        response = self.client.chat.completions.create(
-            model=self.deployment_name,
-            messages=messages,
-            max_tokens=max_tokens,
-            temperature=0.7
-        )
-
-        return response.choices[0].message.content
-
-    def get_embeddings(self, texts: List[str]) -> List[List[float]]:
-        """Get embeddings for a list of texts using Azure OpenAI.
-        
-        Args:
-            texts: List of texts to get embeddings for
-            
-        Returns:
-            List of embedding vectors
-        """
-        embeddings = []
-        for text in texts:
-            response = self.client.embeddings.create(
-                model=self.deployment_name,
-                input=text
-            )
-            embeddings.append(response.data[0].embedding)
-        return embeddings
 
     def get_model_info(self) -> Dict[str, Any]:
         """Get information about the Azure OpenAI models being used."""

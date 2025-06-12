@@ -3,6 +3,9 @@
 from typing import List, Dict, Any
 from openai import AzureOpenAI
 from app.embedding import EmbeddingProvider
+from app.utils.logger import setup_logger
+
+logger = setup_logger('azure_embedding')
 
 class AzureEmbeddingProvider(EmbeddingProvider):
     """Azure OpenAI implementation of embedding provider."""
@@ -28,6 +31,8 @@ class AzureEmbeddingProvider(EmbeddingProvider):
             azure_endpoint=api_base
         )
         self.embedding_deployment_name = embedding_deployment_name
+        logger.info("Initialized Azure OpenAI embedding provider with deployment: %s",
+                    self.embedding_deployment_name)
 
     def get_embeddings(self, texts: List[str]) -> List[List[float]]:
         """Get embeddings for a list of texts using Azure OpenAI.
