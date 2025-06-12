@@ -7,7 +7,7 @@ class LLMProvider(ABC):
     """Interface for LLM providers."""
 
     @abstractmethod
-    def generate_response(self, query: str, context: List[str], **kwargs) -> str:
+    def generate_response(self, system_prompt: str, user_prompt: str, **kwargs) -> str:
         """Generate a response based on the query and context."""
 
     @abstractmethod

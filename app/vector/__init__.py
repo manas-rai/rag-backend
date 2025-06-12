@@ -18,6 +18,7 @@ class VectorStore(ABC):
     def similarity_search(
         self,
         query: str,
+        query_embedding: List[float],
         k: int = 4,
         filters: Optional[Dict[str, Any]] = None
     ) -> List[Dict[str, Any]]:

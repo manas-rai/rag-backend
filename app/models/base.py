@@ -7,6 +7,7 @@ class BaseResponse(BaseModel):
     """Base response model with common fields."""
     success: bool = True
     error: Optional[str] = None
+    message: Optional[str] = None
 
 class DocumentBase(BaseModel):
     """Base document model."""
@@ -19,3 +20,9 @@ class DocumentConfig(BaseModel):
     embedding_provider: Optional[str] = None
     vector_store: Optional[str] = None
     chunker: Optional[str] = None
+
+class DocumentParams(BaseModel):
+    """Parameters for document processing."""
+    max_chunks: Optional[int] = None
+    temperature: Optional[float] = None
+    max_tokens: Optional[int] = None
