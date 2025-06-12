@@ -6,3 +6,4 @@ tokenizers==0.20.3
 huggingface-hub==0.32.3
 torch==2.7.0
 transformers==4.46.3
+PyPDF2==3.0.1

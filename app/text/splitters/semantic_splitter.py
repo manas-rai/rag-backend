@@ -74,4 +74,3 @@ class SemanticTextSplitter(TextSplitter):
         except Exception as e:
             logger.error("Failed to get config: %s", str(e))
             raise e
-
